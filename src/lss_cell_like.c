@@ -18,7 +18,7 @@ static ccl_cosmology *get_cosmology(int n_par,double *params,LSS_likelihood_work
   //TODO
 }
 
-double lss_likelihood(int n_par,double *params,LSS_2pt_Cell *data,gsl_matrix *prec,LSS_likelihood_workspace *w);
+double lss_likelihood(int n_par,double *params,LSS_2pt_Cell *data,gsl_matrix *prec,LSS_likelihood_workspace *w)
 {
   //Compute likelihood for:
   //  - Set of cosmological and nuisance parameters encoded in params
@@ -28,7 +28,7 @@ double lss_likelihood(int n_par,double *params,LSS_2pt_Cell *data,gsl_matrix *pr
 
   ccl_cosmology *cosmo=get_cosmology(n_par,params,w);
   gsl_vector *theory=lss_cell_theory(cosmo,w,data);
-  double chi2=compute_chi2(data->cl_bpw,theory,prec);
+  double chi2=compute_chi2(data->cl_bpw,theory,prec); //Write simple functions that performs (d-t)^T * C^-1 * (d-t)
 
   gsl_vector_free(theory);
   ccl_cosmology_free(cosmo);
