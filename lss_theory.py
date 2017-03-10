@@ -48,7 +48,7 @@ def get_nuisance_arrays(block,section,name_n,name_z) :
     return z_arr,n_arr
 
 def get_tracers(block,cosmo,tracers) :
-    tr_out=[]
+    tr_out={}
     for tr in tracers :
         sec_params=tr.exp_sample+'_parameters'
         if tr.type == 'point' :
@@ -58,142 +58,31 @@ def get_tracers(block,cosmo,tracers) :
 
             #We assume no RSDs
             #We assume no magnification
-            tr_out.append(ccl.ClTracerNumberCounts(cosmo,False,False
-
+            #Only linear bias implemented so far
+            tr_out[tr.name]=ccl.ClTracerNumberCounts(cosmo,False,False,tr.zNz,tr.Nz,tr.zNz,b_arr)
+        else :
+            raise ValueError("Only \"point\" tracers supported")
+                          
 def setup(options) :
+    #These functions are completely made up
     tracers=sacc.read_means(options['lss_like','data_file'])
+    #These functions are completely made up
     means=sacc.read_means(options['lss_like','data_file'])
 
     return {'tracers': tracers,'means': means}
 
-def execute(block,config)
-#....
+def execute(block,config) :
+    cosmo=get_cosmo(block)
+    tr=get_tracers(block,cosmo,config['tracers'])
+    theory_out=[]
+    for m in config['means'] :
+        #I'm assuming here that m.data['T1'] coincides with the name of that tracer
+        #I'm not averaging over ells within each bin right now
+        cls=ccl.angular_cls(tr[m.data['T1']],tr[m.data['T2']],m.data['ls'])
+        #I guess one could use copy here and just fill in value
+        theory_out.append(sacc.MeanVec(typ='F',ls=m.data['ls'],
+                                       T1=m.data['T1'],Q1=m.data['Q1'],
+                                       T2=m.data['T2'],Q2=m.data['Q2'],
+                                       value=cls,error=np.zeros_like(cls)))
 
-
-def ccl_lss_logprior(params):
-    """Prototype for LSS priors
-    
-    Args:
-        ccl_params (`obj`:ccl.Parameters) Cosmological parameters of
-        the model to compute.
-        
-    Returns: Value of the prior
-    """
-    return 0
-
-
-def ccl_lss_logp_cl(params,ldata,cl_data,cl_cov,z_n,n,
-                    has_rsd=True,has_magnification=False,z_n2=None,
-                    n2=None,z_s=None,s=None,z_s2=None,s2=None,
-                    invert_cov=False,lmfit=True):
-    """Prototype for LSS likelihood
-    
-    Args:
-          params (`dict`:Parameters or `obj` lmfit parameters) Cosmological parameters
-          of the model to compute.
-          cl_data (`np.array`) Data vector containing the angular power-spectrum.
-          cl_cov (`np.array`) Covariance matrix.
-          z_n (`np.array`) redshift at which dN/dz is evaluated.
-          n (`np.array`) values of dN/dz.
-          has_rsd (`bool`, optional) if True include RSD.
-          has_magnification (`bool`, optional) if True include magnification
-          z_n2 (`np.array`, optional) redshift at which dN/dz of the second tracer
-          is evaluated, if None then auto-power spectrum is computed.
-          n2 (`np.array`) dN/dz for cross-power spectrum calculation, if None
-          auto-power spectrum is computed.
-          z_b2 (`np.array`, optional) redshift at which b(z) of the second tracer
-          is computed, if None, then it will be equal to the one in the first tracer
-          b2 (`np.array`, optional) bias of the second tracer, if None it will be
-          equal to the first tracer.
-          z_s (`np.array`, optional) if has_magnification=True then this is the
-          redshift at which the dn/dz of the sources is provided.
-          s (`np.array`, optional) if has_magnification=True this is the dn/dz of 
-          the sources for magnification.
-          z_s2 (`np.array`, optional) same as z_s for the second tracers, if not
-          provided, then they will be equal to the z_s.
-          s2 (`np.array`, optional) same as s for the second tracers, if not provided
-          they will be equal to s.
-          invert_cov (`bool`, optional) If True invert the covariance matrix, if False,
-          it means that the input is the inverse covariance matrix (faster).
-          lmfit (`bool`, optional) If True it assumes that params is a lmfit.Parameters
-          object. Requires lmfit.
-    Returns:
-          logp (`double`) Log-posterior value for the model evaluated
-    """
-    if lmfit:
-        oc = params['Omega_c'].value
-        ob = params['Omega_b'].value
-        h = params['h'].value
-        A_s = params['A_s'].value
-        n_s = params['n_s'].value
-        ok = params['Omega_k'].value
-        on = params['Omega_n'].value
-        w0 = params['w0'].value
-        wa = params['wa'].value
-        b = params['b'].value
-        z_b = params['z_b'].value
-        if 'b_2' in params.keys():
-            b2 = params['b_2'].value
-            z_b2 = params['z_b_2'].value
-    else:
-        oc = params['Omega_c']
-        ob = params['Omega_b']
-        h = params['h']
-        A_s = params['A_s']
-        n_s = params['n_s']
-        ok = params['Omega_k']
-        on = params['Omega_n']
-        w0 = params['w0']
-        wa = params['wa']
-        b = params['b']
-        z_b = params['z_b']
-        if 'b_2' in params.keys():
-            b2 = params['b_2']
-            z_b2 = params['z_b_2']
-    ccl_params = ccl.Parameters(Omega_c=oc,
-                                Omega_b=ob,
-                                h=h,A_s=A_s,
-                                n_s=n_s,Omega_k=ok,
-                               Omega_n=on,w0=w0,
-                               wa=wa)
-    ccl_cosmo = ccl.Cosmology(ccl_params)
-    
-    if(z_n2==None):
-        z_n2 = z_n
-        n2 = n
-        b2 = [b]
-        z_b2 = [z_b]
-        if(has_magnification):
-            z_s2 = z_s
-            s2 = s
-    if('b_2' in params.keys()):
-        b2 = [b2]
-        z_b2 = [z_b2]
-
-    if(has_magnification):
-        cltracer1 = ccl.ClTracerNumberCounts(ccl_cosmo,has_rsd=has_rsd,
-                                             has_magnification=has_magnification
-                                             ,z_n=z_n,n=n,z_b=z_b
-                                             ,b=b,
-                                             z_s=z_s,s=s)
-        cltracer2 = ccl.ClTracerNumberCounts(ccl_cosmo,has_rsd=has_rsd,
-                                         has_magnification=has_magnification
-                                         ,z_n=z_n2,n=n2,z_b=z_b2,b=b2,z_s=z_s2,s=s2)
-    else:
-        cltracer1 = ccl.ClTracerNumberCounts(ccl_cosmo,has_rsd=has_rsd,
-                                             has_magnification=has_magnification
-                                             ,z_n=z_n,n=n,z_b=z_b,
-                                             b=b,
-                                             )
-        cltracer2 = ccl.ClTracerNumberCounts(ccl_cosmo,has_rsd=has_rsd,
-                                         has_magnification=has_magnification
-                                         ,z_n=z_n2,n=n2,z_b=z_b2,b=b2)
-    
-    cl_model = ccl.angular_cl(ccl_cosmo,cltracer1,cltracer1,ldata)
-    if(invert_cov):
-        covinv = np.linalg.inv(cl_cov)
-    else:
-        covinv = cl_cov
-    #We calculate the log-posterior
-    logp = -0.5*(np.linalg.dot(cl_model-cl_data),np.matmult(covinv,(cl_model-cl_data)))+ccl_lss_logprior(params)
-    return logp
+    block['LSStheory',theory_out]
