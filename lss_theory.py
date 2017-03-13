@@ -5,15 +5,13 @@ from scipy.interpolate import interp1d
 
 class LSSTheory(object):
     def __init__(self,data_file) :
-        s=sacc.SACC.loadFromHDF(sacc_filename)
-        if s.mean==None :
+        self.s=sacc.SACC.loadFromHDF(sacc_filename)
+        if self.s.mean==None :
             raise ValueError("Mean vector needed!")
-        self.data_means=s.mean
-        self.tracers=s.tracers
 
     def get_tracers(self,cosmo,dic_par) :
         tr_out=[]
-        for tr in self.tracers :
+        for tr in self.s.tracers :
             if tr.type == 'point' :
                 z_b_arr=dic_par[tr.exp_sample+'_z_b'] #Should check for the existence of this
                 b_b_arr=dic_par[tr.exp_sample+'_b_b'] #Should check for the existence of this
@@ -23,7 +21,7 @@ class LSSTheory(object):
                 #We assume no RSDs
                 #We assume no magnification
                 #Only linear bias implemented so far
-                tr_out.append(ccl.ClTracerNumbercounts(cosmo,False,False,tr.zNz,tr.Nz,tr.zNz,b_arr))
+                tr_out.append(ccl.ClTracerNumberCounts(cosmo,False,False,tr.zNz,tr.Nz,tr.zNz,b_arr))
             else :
                 raise ValueError("Onely \"point\" tracers supported")
 
@@ -66,15 +64,11 @@ class LSSTheory(object):
     def get_prediction(self,dic_par) :
         cosmo=self.get_cosmo(dic_par)
         tr=get_tracers(cosmo,dic_par)
-        theory_out=[]
-        for m in self.means :
+        theory_out=np.zeros_like(s.mean.data['value'])
+        for i1,i2,ells,ndx in s.sortTracers() :
             #I'm assuming here that m.data['T1'] coincides with the index of that tracer
             #I'm not averaging over ells withing each bin
-            cls=ccl.angular_cls(tr[m.data['T1']],tr[m.data['T2']],m.data['ls'])
-            #I guess one could use copy here and just fill in value
-            theory_out.append(sacc.MeanVec(typ='F',ls=m.data['ls'],
-                                           T1=m.data['T1'],Q1=m.data['Q1'],
-                                           T2=m.data['T2'],Q2=m.data['Q2'],
-                                           value=cls,error=np.zeros_like(cls)))
+            cls=ccl.angular_cls(tr[i1],tr[i2],ells)
+            theory_output[ndx]=cls
 
         return theory_out

@@ -8,19 +8,15 @@ import numpy as np
 
 class LSSLikelihood(object):
     def __init__(self,sacc_filename) :
-        s=sacc.SACC.loadFromHDF(sacc_filename)
-        if s.precision==None :
+        self.s=sacc.SACC.loadFromHDF(sacc_filename)
+        if self.s.precision==None :
             raise ValueError("Precision matrix needed!")
-        if s.mean==None :
+        if self.s.mean==None :
             raise ValueError("Mean vector needed!")
-        self.data_prec=s.precision.matrix
-        self.data_means=s.mean
-        self.data_vector=np.concatenate([m.data['value'] for m in self.data_means])
 
     #We're assuming data_theory will come in the form of a sacc.Means object
-    def __call__(self,data_theory) :
-        theory_vector=np.concatenate([m.data['value'] for m in data_theory])
-        delta=theory_vector - self.data_vector;
-        chi2=np.einsum('i,ij,j',delta,self.data_prec,delta)
+    def __call__(self,theory_vec) :
+        delta=theory_vec - self.s.mean.data['value']
+        chi2=np.einsum('i,ij,j',delta,self.s.precision,delta)
         
         return -0.5*chi2
