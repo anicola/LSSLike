@@ -4,7 +4,7 @@ import sacc
 from scipy.interpolate import interp1d
 
 class LSSTheory(object):
-    def __init__(self,data_file) :
+    def __init__(self,sacc_filename) :
         self.s=sacc.SACC.loadFromHDF(sacc_filename)
         if self.s.mean==None :
             raise ValueError("Mean vector needed!")
@@ -23,7 +23,7 @@ class LSSTheory(object):
                 #Only linear bias implemented so far
                 tr_out.append(ccl.ClTracerNumberCounts(cosmo,False,False,tr.zNz,tr.Nz,tr.zNz,b_arr))
             else :
-                raise ValueError("Onely \"point\" tracers supported")
+                raise ValueError("Only \"point\" tracers supported")
 
         return tr_out
 
@@ -63,7 +63,7 @@ class LSSTheory(object):
 
     def get_prediction(self,dic_par) :
         cosmo=self.get_cosmo(dic_par)
-        tr=get_tracers(cosmo,dic_par)
+        tr=self.get_tracers(cosmo,dic_par)
         theory_out=np.zeros_like(s.mean.data['value'])
         for i1,i2,ells,ndx in s.sortTracers() :
             #I'm assuming here that m.data['T1'] coincides with the index of that tracer
