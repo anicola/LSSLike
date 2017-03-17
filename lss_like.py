@@ -17,6 +17,18 @@ class LSSLikelihood(object):
     #We're assuming data_theory will come in the form of a sacc.Means object
     def __call__(self,theory_vec) :
         delta=theory_vec - self.s.mean.data['value']
-        chi2=np.einsum('i,ij,j',delta,self.s.precision,delta)
-        
+        chi2=np.linalg.multi_dot([delta,self.s.precision.matrix,delta])
+
         return -0.5*chi2
+
+
+
+
+
+
+
+
+
+
+        
+
