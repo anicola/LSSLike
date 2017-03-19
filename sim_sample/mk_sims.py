@@ -16,7 +16,8 @@ zbin_size=0.1
 
 def main():
 
-    cosmo=ccl.Cosmology(ccl.Parameters(Omega_c=0.27,Omega_b=0.045,h=0.67,A_s=1E-10,n_s=0.96))
+    cosmo=ccl.Cosmology(ccl.Parameters(Omega_c=0.27,Omega_b=0.045,h=0.67,sigma8=0.8,n_s=0.96,),
+                        transfer_function='bbks',matter_power_spectrum='linear')
     tracers,cltracers=getTracers(cosmo)
     binning=getBinning(tracers)
     binning_sacc=sacc.SACC(tracers,binning)
