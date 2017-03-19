@@ -1,6 +1,6 @@
 from cosmosis.datablock import option_section, names as section_names
 import numpy as np
-from lss_theory import LSSTheory
+from desclss import LSSTheory
 
 def get_nuisance_arrays(block,section,name_n,name_z) :
     z_arr=[]; n_arr=[];

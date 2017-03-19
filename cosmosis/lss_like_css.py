@@ -1,5 +1,5 @@
 from cosmosis.datablock import option_section, names as section_names
-from lss_like import LSSLikelihood
+from desclss import LSSLikelihood
 import numpy as np
 
 def setup(options) :
