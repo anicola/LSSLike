@@ -8,7 +8,7 @@ import numpy as np
 
 class LSSLikelihood(object):
     def __init__(self,saccin) :
-        if (type(sacc)==type("filename")):
+        if (type(saccin)==type("filename")):
             self.s=sacc.SACC.loadFromHDF(saccin)
         else:
             self.s=saccin
@@ -23,6 +23,6 @@ class LSSLikelihood(object):
 
     def chi2(self,theory_vec):
         delta=theory_vec - self.s.mean.vector
-        chi2=np.einsum('i,ij,j',delta,self.precision.matrix,delta)
+        chi2=np.einsum('i,ij,j',delta,self.s.precision.matrix,delta)
 #        chi2=np.linalg.multi_dot([delta,self.s.precision.matrix,delta])
         return chi2
