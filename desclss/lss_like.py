@@ -7,8 +7,11 @@ import numpy as np
 # - Ability to return simulated scatter
 
 class LSSLikelihood(object):
-    def __init__(self,sacc_filename) :
-        self.s=sacc.SACC.loadFromHDF(sacc_filename)
+    def __init__(self,saccin) :
+        if (type(sacc)==type("filename")):
+            self.s=sacc.SACC.loadFromHDF(saccin)
+        else:
+            self.s=saccin
         if self.s.precision==None :
             raise ValueError("Precision matrix needed!")
         if self.s.mean==None :
@@ -16,13 +19,12 @@ class LSSLikelihood(object):
 
     #We're assuming data_theory will come in the form of a sacc.Means object
     def __call__(self,theory_vec) :
-        delta=theory_vec - self.s.mean.data['value']
+        return -0.5*self.chi2(theory_vec)
+
+    def chi2(self,theory_vec):
+        delta=theory_vec - self.s.mean.vector
         chi2=np.linalg.multi_dot([delta,self.s.precision.matrix,delta])
-
-        return -0.5*chi2
-
-
-
+        return chi2
 
 
 
