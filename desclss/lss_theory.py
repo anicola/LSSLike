@@ -6,8 +6,8 @@ from scipy.interpolate import interp1d
 class LSSTheory(object):
     def __init__(self,data_file) :
         self.s=sacc.SACC.loadFromHDF(data_file)
-        if self.s.mean==None :
-            raise ValueError("Mean vector needed!")
+        if self.s.binning==None :
+            raise ValueError("Binning needed!")
 
     def get_tracers(self,cosmo,dic_par) :
         tr_out=[]
@@ -61,14 +61,16 @@ class LSSTheory(object):
         else:
             raise ValueError("Need either sigma 8 or A_s in pyccl.")
 
-        cosmo=ccl.Cosmology(params)
+        cosmo=ccl.Cosmology(params,
+                            transfer_function=dic_par['transfer_function'],
+                            matter_power_spectrum=dic_par['matter_power_spectrum'])
 
         return cosmo
 
     def get_prediction(self,dic_par) :
+        theory_out=np.zeros((self.s.size(),))
         cosmo=self.get_cosmo(dic_par)
         tr=self.get_tracers(cosmo,dic_par)
-        theory_out=np.zeros_like(self.s.mean.data['value'])
         for i1,i2,ells,ndx in self.s.sortTracers() :
             #I'm assuming here that m.data['T1'] coincides with the index of that tracer
             #I'm not averaging over ells withing each bin
