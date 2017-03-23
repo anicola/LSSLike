@@ -44,10 +44,10 @@ def logprob(p,lk) :
 #Read data and initialize likelihood object
 if isim<0 :
     fn="sim_sample/sims/sim_mean.sacc"
-    fno="test/chains_mean"
+    fno="test/chains_om_s8_bnn/chains_mean"
 else :
     fn="sim_sample/sims/sim_%03d.sacc"%isim
-    fno="test/chains_%03d"%isim
+    fno="test/chains_om_s8_bnn/chains_%03d"%isim
 s=sacc.SACC.loadFromHDF(fn)
 s.precision=s0.precision
 lk=LSSLikelihood(s)
@@ -80,7 +80,7 @@ print("Mean acceptance fraction: {0:.3f}"
 
 
 #Save result and analyze it
-#np.save(fno,sampler.chain)
+np.save(fno,sampler.chain)
 chain=np.load(fno+".npy")
 samples=(chain)[:,nsteps_per_chain/2:,:].reshape((-1,npar))
 for l,m,s in zip(labels,np.mean(samples,axis=0),np.std(samples,axis=0)) :
