@@ -19,12 +19,8 @@ class LSSTheory(object):
                 except:
                     raise ValueError("bias needed for each tracer")
                 
-                bf=interp1d(z_b_arr,b_b_arr,kind='linear') #Assuming linear interpolation. Decide on extrapolation.
+                bf=interp1d(z_b_arr,b_b_arr,kind='nearest') #Assuming linear interpolation. Decide on extrapolation.
                 b_arr=bf(tr.z) #Assuming that tracers have this attribute
-
-                #We assume no RSDs
-                #We assume no magnification
-                #Only linear bias implemented so far
                 tr_out.append(ccl.ClTracerNumberCounts(cosmo,False,False,tr.z,tr.Nz,tr.z,b_arr))
             else :
                 raise ValueError("Only \"point\" tracers supported")
@@ -40,7 +36,7 @@ class LSSTheory(object):
             w = dic_par['w']
         else :
             w = -1.
-        if 'w' in dic_par :
+        if 'wa' in dic_par :
             wa = dic_par['wa']
         else :
             wa = 0.
@@ -72,8 +68,6 @@ class LSSTheory(object):
         cosmo=self.get_cosmo(dic_par)
         tr=self.get_tracers(cosmo,dic_par)
         for i1,i2,ells,ndx in self.s.sortTracers() :
-            #I'm assuming here that m.data['T1'] coincides with the index of that tracer
-            #I'm not averaging over ells withing each bin
             cls=ccl.angular_cl(cosmo,tr[i1],tr[i2],ells)
             theory_out[ndx]=cls
             
