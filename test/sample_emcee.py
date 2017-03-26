@@ -14,8 +14,8 @@ if len(sys.argv)!=2 :
 isim=int(sys.argv[1])
 
 #Parameter order
-i_om=0; i_s8=1; i_b0=2; i_b1=3; i_b2=4; i_b3=5;
-labels=['$\\Omega_M\\,h^2$','$\\sigma_8$','$b_0$','$b_1$','$b_2$','$b_3$']
+i_om=0; i_w=1; i_b0=2; i_b1=3; i_b2=4; i_b3=5;
+labels=['$\\Omega_M\\,h^2$','$w$','$b_0$','$b_1$','$b_2$','$b_3$']
 npar=6
 
 
@@ -29,7 +29,7 @@ def logprob(p,lk) :
     print p
     oc=p[i_om]/0.67**2-0.045
     dic={'omega_c':oc,'omega_b':0.045,'omega_k':0.0,'omega_nu':0.0,
-         'h0':0.67,'sigma_8':p[i_s8],'n_s':0.96,
+         'h0':0.67,'sigma_8':0.8,'n_s':0.96,'w':p[i_w],
          'transfer_function':'eisenstein_hu','matter_power_spectrum':'linear'}
     dic.update({'gals_z_b':[0.0,
                             0.5    ,0.7    ,0.9    ,1.1    ,
@@ -44,10 +44,10 @@ def logprob(p,lk) :
 #Read data and initialize likelihood object
 if isim<0 :
     fn="sim_sample/sims/sim_mean.sacc"
-    fno="test/chains_om_s8_bnn/chains_mean"
+    fno="test/chains_om_w_bnn/chains_mean"
 else :
     fn="sim_sample/sims/sim_%03d.sacc"%isim
-    fno="test/chains_om_s8_bnn/chains_%03d"%isim
+    fno="test/chains_om_w_bnn/chains_%03d"%isim
 s=sacc.SACC.loadFromHDF(fn)
 s.precision=s0.precision
 lk=LSSLikelihood(s)
@@ -55,7 +55,7 @@ lk=LSSLikelihood(s)
 
 #First sample
 p0=np.zeros(npar);
-p0[i_om]=0.315*0.67**2; p0[i_s8]=0.8; p0[i_b0]=1.0; p0[i_b1]=1.0; p0[i_b2]=1.0; p0[i_b3]=1.0; 
+p0[i_om]=0.315*0.67**2; p0[i_w]=-1.; p0[i_b0]=1.0; p0[i_b1]=1.0; p0[i_b2]=1.0; p0[i_b3]=1.0; 
 print "This should be a small number: %lE"%(logprob(p0,lk))
 
 
