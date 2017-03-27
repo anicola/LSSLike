@@ -4,8 +4,6 @@ import numpy as np
 import sacc
 from desclss import LSSTheory
 import copy
-#import corner as cn
-#import matplotlib.pyplot as plt
 
 #Simulation to use
 if len(sys.argv)!=2 :
@@ -58,11 +56,4 @@ for i,nam in enumerate(params_vary) :
 
 #Compute Fisher matrix, covariance and correlation matrix
 fisher=np.dot(dcl,np.dot(s0.precision.matrix,dcl.T))
-covar=np.linalg.inv(fisher)
-corr=covar/np.sqrt(np.diag(covar)[:,None]*np.diag(covar)[None,:])
-
-print "Fisher forecast:"
-for i,nam in enumerate(params_vary) :
-    print params_vary[nam]['label']+" = %lE"%(params_vary[nam]['value'])+' +- %lE'%(np.sqrt(covar[i,i]))
-print "\nCorrelation matrix:"
-print corr
+np.save('test/chains_om_w_bnn/fisher',fisher)
