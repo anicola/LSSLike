@@ -30,7 +30,8 @@ def logprob(p,lk) :
     oc=p[i_om]/0.67**2-0.045
     dic={'omega_c':oc,'omega_b':0.045,'omega_k':0.0,'omega_nu':0.0,
          'h0':0.67,'sigma_8':p[i_s8],'n_s':0.96,
-         'transfer_function':'eisenstein_hu','matter_power_spectrum':'linear'}
+         'transfer_function':'eisenstein_hu','matter_power_spectrum':'linear',
+         'has_rsd':False,'has_magnification':False}
     dic.update({'gals_z_b':[0.0,
                             0.5    ,0.7    ,0.9    ,1.1    ,
                             1.7],
