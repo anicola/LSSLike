@@ -8,9 +8,9 @@ class LSSTheory(object):
         self.s=sacc.SACC.loadFromHDF(data_file)
         self.log_normal=log_normal
         self.ln_dz=0.05 ## fixed for now for lognorm predictions
-        self.ln_kmin=1e-3
+        self.ln_kmin=1e-4
         self.ln_kmax=50.
-        self.ln_Nk=10000
+        self.ln_Nk=65536
         
         if self.s.binning==None :
             raise ValueError("Binning needed!")
@@ -102,30 +102,24 @@ class LSSTheory(object):
                             transfer_function=dic_par['transfer_function'],
                             matter_power_spectrum=dic_par['matter_power_spectrum'])
             bfuncs=self.bias_interpolators(dic_par)
+            assert (len(self.s.get_exp_sample_set())==1)
             ks=np.logspace(np.log10(self.ln_kmin),np.log10(self.ln_kmax),self.ln_Nk)
             zs=np.arange(0.,self.zmax+self.ln_dz,self.ln_dz)
             pk_lins=[ccl.linear_matter_power(mcosmo,ks,a) for a in 1./(1+zs)]
-            rsm2=dic_par['rsm2']
-            cosmo=[]
-            for i1,i2,ells,ndx in self.s.sortTracers():
-                lntpk=[]
-                for z,pk_lin in zip(zs,pk_lins):
-                    b1=bfuncs[i1](z)
-                    b2=bfuncs[i2](z)
-                    pkt=pk_lin*b1*b2*np.exp(-ks*ks*rsm2)
-                    r_lin,xi_lin=ccl.pk2xi(ks,pk_lin)
-                    xi_t=np.exp(xi_lin)-1
-                    _,pkt=ccl.xi2pk(r_lin,xi_t)
-                    pkt=fix_pk(ks,pkt)
-                    lntpk.append(pkt)
+            rsm2=dic_par['rsm2']/(params['h']*params['h'])
+            lntpk=[]
+            for z,pk_lin in zip(zs,pk_lins):
+                b=bfuncs[0](z) # here we assume that all tracers have same bias
+                pkt=pk_lin*b*b*np.exp(-ks*ks*rsm2)
+                r_lin,xi_lin=ccl.pk2xi(ks,pk_lin)
+                xi_t=np.exp(xi_lin)-1
+                _,pkt=ccl.xi2pk(r_lin,xi_t)
+                pkt=fix_pk(ks,pkt)
+                lntpk.append(pkt)
                     
-                ccosmo=ccl.Cosmology(params,
-                            transfer_function=dic_par['transfer_function'],
-                            matter_power_spectrum=dic_par['matter_power_spectrum'])
-                ccl.update_matter_power(ccosmo,ks,1./(1+zs),lntpk,is_linear=True)
-                ccl.update_matter_power(ccosmo,ks,1./(1+zs),lntpk,is_linear=False)
-                cosmo.append(ccosmo)
-        return cosmo
+            ccl.update_matter_power(mcosmo,ks,1./(1+zs),lntpk,is_linear=True)
+            ccl.update_matter_power(mcosmo,ks,1./(1+zs),lntpk,is_linear=False)
+        return mcosmo
 
     def get_prediction(self,dic_par) :
         theory_out=np.zeros((self.s.size(),))
@@ -133,10 +127,7 @@ class LSSTheory(object):
         cosmo=self.get_cosmo(dic_par,tr)
 
         for cc,(i1,i2,ells,ndx) in enumerate(self.s.sortTracers()):
-            if self.lognorm:
-                cls=ccl.angular_cl(cosmo[cc],tr[i1],tr[i2],ells)
-            else:
-                cls=ccl.angular_cl(cosmo,tr[i1],tr[i2],ells)
+            cls=ccl.angular_cl(cosmo,tr[i1],tr[i2],ells)
             theory_out[ndx]=cls
             
         return theory_out    
