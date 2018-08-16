@@ -3,15 +3,9 @@ import sys
 import numpy as np
 import sacc
 from desclss import LSSTheory,LSSLikelihood
+#import Erika's file
 import emcee as mc
-#import corner as cn
-#import matplotlib.pyplot as plt
 
-#Simulation to use
-if len(sys.argv)!=2 :
-    print "Usage ./sample_emcee.py sim_num"
-    exit(1)
-isim=int(sys.argv[1])
 
 #Parameter order
 i_om=0; i_s8=1; i_b0=2; i_b1=3; i_b2=4; i_b3=5;
@@ -24,10 +18,10 @@ npar=6
 #lt=LSSTheory("sim_sample/sims/sim_mean.sacc")
 s0=sacc.SACC.loadFromHDF("/global/cscratch1/sd/damonge/HSC/HSC_processed/WIDE_GAMA09H/WIDE_GAMA09H_spectra_eab_best_single_nocont.sacc")
 lt=LSSTheory("/global/cscratch1/sd/damonge/HSC/HSC_processed/WIDE_GAMA09H/WIDE_GAMA09H_spectra_eab_best_single_nocont.sacc")
-
+##############was using LSSTheory for lt 
 #Define log(p). This is just a wrapper around the LSSLikelihood lk
 def logprob(p,lk) :
-    print p
+    print (p)
     oc=p[i_om]/0.67**2-0.045
     dic={'omega_c':oc,'omega_b':0.045,'omega_k':0.0,'omega_nu':0.0,
          'h0':0.67,'sigma_8':p[i_s8],'n_s':0.96,
@@ -43,22 +37,23 @@ def logprob(p,lk) :
 
 
 #Read data and initialize likelihood object
-if isim<0 :
-    fn="sim_sample/sims/sim_mean.sacc"
-    fno="test/chains_om_s8_bnn/chains_mean"
-else :
-    fn="sim_sample/sims/sim_%03d.sacc"%isim
-    fno="test/chains_om_s8_bnn/chains_%03d"%isim
+fn="/global/cscratch1/sd/damonge/HSC/HSC_processed/WIDE_GAMA09H/WIDE_GAMA09H_spectra_eab_best_single_nocont.sacc"
+#fno=""
+
 s=sacc.SACC.loadFromHDF(fn)
 s.precision=s0.precision
 lk=LSSLikelihood(s)
 
-chi2=lk.chi2(theory_vec)
+chi2=lk.chi2(theory_vec=lt.mean.vector)
 
+
+
+
+##########################from this I haven't touched anything from sample_emcee.py
 #First sample
 p0=np.zeros(npar);
 p0[i_om]=0.315*0.67**2; p0[i_s8]=0.8; p0[i_b0]=1.0; p0[i_b1]=1.0; p0[i_b2]=1.0; p0[i_b3]=1.0; 
-print "This should be a small number: %lE"%(logprob(p0,lk))
+print ("This should be a small number: %lE"%(logprob(p0,lk)))
 
 
 #Setup sampler
@@ -71,11 +66,11 @@ sampler=mc.EnsembleSampler(nwalkers,npar,logprob,args=[lk])
 #First sample for each walker
 par0=(p0)[None,:]*(1+0.001*np.random.randn(nwalkers,npar))#[:,None]
 #Burning phase
-print "Burning"
+print ("Burning")
 pos,prob,stat=sampler.run_mcmc(par0,nsteps_burn)
 sampler.reset()
 #Running
-print "Running"
+print ("Running")
 sampler.run_mcmc(pos,nsteps_per_chain)
 print("Mean acceptance fraction: {0:.3f}"
       .format(np.mean(sampler.acceptance_fraction)))

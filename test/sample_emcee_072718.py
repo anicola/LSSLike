@@ -20,10 +20,15 @@ npar=6
 
 
 #Read file with noiseless sim and initialize theory object
-#s0=sacc.SACC.loadFromHDF("sim_sample/sims/sim_mean.sacc")
-#lt=LSSTheory("sim_sample/sims/sim_mean.sacc")
-s0=sacc.SACC.loadFromHDF("/global/cscratch1/sd/damonge/HSC/HSC_processed/WIDE_GAMA09H/WIDE_GAMA09H_spectra_eab_best_single_nocont.sacc")
-lt=LSSTheory("/global/cscratch1/sd/damonge/HSC/HSC_processed/WIDE_GAMA09H/WIDE_GAMA09H_spectra_eab_best_single_nocont.sacc")
+zmin=None
+zmax=200000
+lmin=300
+lmax=450
+diagonal=True
+
+s0=sacc.SACC.loadFromHDF("sim_sample/sims/sim_mean.sacc",zmin=zmin, zmax=zmax, lmin=lmin, lmax=lmax, diagonal=diagonal)
+lt=LSSTheory("sim_sample/sims/sim_mean.sacc",zmin=zmin, zmax=zmax, lmin=lmin,lmax=lmax, diagonal=diagonal)
+
 
 #Define log(p). This is just a wrapper around the LSSLikelihood lk
 def logprob(p,lk) :
@@ -48,12 +53,11 @@ if isim<0 :
     fno="test/chains_om_s8_bnn/chains_mean"
 else :
     fn="sim_sample/sims/sim_%03d.sacc"%isim
-    fno="test/chains_om_s8_bnn/chains_%03d"%isim
-s=sacc.SACC.loadFromHDF(fn)
+    fno="test/chains_om_s8_bnn/chains_%03d.sacc"%isim
+s=sacc.SACC.loadFromHDF(fn, zmin=zmin, zmax=zmax, lmin=lmin, lmax=lmax, diagonal=diagonal)#,precision_filename=fn0)
 s.precision=s0.precision
 lk=LSSLikelihood(s)
 
-chi2=lk.chi2(theory_vec)
 
 #First sample
 p0=np.zeros(npar);
@@ -88,4 +92,4 @@ samples=(chain)[:,nsteps_per_chain/2:,:].reshape((-1,npar))
 for l,m,s in zip(labels,np.mean(samples,axis=0),np.std(samples,axis=0)) :
     print l+'= %lE +-'%m+' %lE'%s
 #fig=cn.corner(samples,labels=labels,truths=p0)
-#plt.show()     
+#plt.show()                 
