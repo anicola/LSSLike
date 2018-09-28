@@ -19,7 +19,7 @@ class LSSTheory(object):
                 except:
                     raise ValueError("bias needed for each tracer")
 
-                if 'zshift_bin' + str(tr_index) in dic_par.keys:
+                if 'zshift_bin' + str(tr_index) in dic_par:
                     zbins = thistracer.z + dic_par['zshift_bin' + str(tr_index)]
                 else:
                     zbins = thistracer.z
