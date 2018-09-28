@@ -1,6 +1,5 @@
 ##
 ## Init for DESC module
 ##
-
-from lss_like import LSSLikelihood
-from lss_theory import LSSTheory
+from desclss.lss_like import LSSLikelihood
+from desclss.lss_theory import LSSTheory
