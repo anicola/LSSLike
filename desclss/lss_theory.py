@@ -63,7 +63,7 @@ class LSSTheory(object):
             cosmo=ccl.Cosmology(params,
                                 transfer_function=dic_par['transfer_function'],
                                 matter_power_spectrum=dic_par['matter_power_spectrum'])
-        elif 'transfer_function' in dic_par not and 'matter_power_spectrum' in dic_par:
+        elif 'transfer_function' in dic_par and not 'matter_power_spectrum' in dic_par:
             cosmo=ccl.Cosmology(params,
                                 transfer_function=dic_par['transfer_function'])
         elif 'transfer_function' not in dic_par and 'matter_power_spectrum' in dic_par:
