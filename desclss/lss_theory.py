@@ -11,17 +11,22 @@ class LSSTheory(object):
 
     def get_tracers(self,cosmo,dic_par) :
         tr_out=[]
-        for tr in self.s.tracers :
-            if tr.type == 'point' : 
+        for (tr_index, thistracer) in enumerate(self.s.tracers) :
+            if thistracer.type == 'point' : 
                 try:
-                    z_b_arr=dic_par[tr.exp_sample+'_z_b']
-                    b_b_arr=dic_par[tr.exp_sample+'_b_b']
+                    z_b_arr=dic_par[thistracer.exp_sample+'_z_b']
+                    b_b_arr=dic_par[thistracer.exp_sample+'_b_b']
                 except:
                     raise ValueError("bias needed for each tracer")
+
+                if 'zshift_bin' + str(tr_index) in dic_par.keys:
+                    zbins = thistracer.z + dic_par['zshift_bin' + str(tr_index)]
+                else:
+                    zbins = thistracer.z
                 
                 bf=interp1d(z_b_arr,b_b_arr,kind='nearest') #Assuming linear interpolation. Decide on extrapolation.
-                b_arr=bf(tr.z) #Assuming that tracers have this attribute
-                tr_out.append(ccl.ClTracerNumberCounts(cosmo,False,False,tr.z,tr.Nz,tr.z,b_arr))
+                b_arr=bf(thistracer.z) #Assuming that tracers have this attribute
+                tr_out.append(ccl.ClTracerNumberCounts(cosmo,False,False,zbins,thistracer.Nz,zbins,b_arr))
             else :
                 raise ValueError("Only \"point\" tracers supported")
 
