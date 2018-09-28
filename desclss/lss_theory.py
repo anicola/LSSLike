@@ -12,7 +12,7 @@ class LSSTheory(object):
     def get_tracers(self,cosmo,dic_par) :
         tr_out=[]
         for tr in self.s.tracers :
-            if tr.type == 'point' : 
+            if tr.type.__contains__('point'):
                 try:
                     z_b_arr=dic_par[tr.exp_sample+'_z_b']
                     b_b_arr=dic_par[tr.exp_sample+'_b_b']
@@ -67,7 +67,7 @@ class LSSTheory(object):
         theory_out=np.zeros((self.s.size(),))
         cosmo=self.get_cosmo(dic_par)
         tr=self.get_tracers(cosmo,dic_par)
-        for i1,i2,ells,ndx in self.s.sortTracers() :
+        for i1,i2,_,ells,ndx in self.s.sortTracers() :
             cls=ccl.angular_cl(cosmo,tr[i1],tr[i2],ells)
             theory_out[ndx]=cls
             
