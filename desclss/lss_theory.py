@@ -11,17 +11,22 @@ class LSSTheory(object):
 
     def get_tracers(self,cosmo,dic_par) :
         tr_out=[]
-        for tr in self.s.tracers :
-            if tr.type == 'point' : 
+        for (tr_index, thistracer) in enumerate(self.s.tracers) :
+            if thistracer.type.__contains__('point'):
                 try:
-                    z_b_arr=dic_par[tr.exp_sample+'_z_b']
-                    b_b_arr=dic_par[tr.exp_sample+'_b_b']
+                    z_b_arr=dic_par[thistracer.exp_sample+'_z_b']
+                    b_b_arr=dic_par[thistracer.exp_sample+'_b_b']
                 except:
                     raise ValueError("bias needed for each tracer")
+
+                if 'zshift_bin' + str(tr_index) in dic_par:
+                    zbins = thistracer.z + dic_par['zshift_bin' + str(tr_index)]
+                else:
+                    zbins = thistracer.z
                 
                 bf=interp1d(z_b_arr,b_b_arr,kind='nearest') #Assuming linear interpolation. Decide on extrapolation.
-                b_arr=bf(tr.z) #Assuming that tracers have this attribute
-                tr_out.append(ccl.ClTracerNumberCounts(cosmo,False,False,tr.z,tr.Nz,tr.z,b_arr))
+                b_arr=bf(thistracer.z) #Assuming that tracers have this attribute
+                tr_out.append(ccl.ClTracerNumberCounts(cosmo,dic_par['has_rsd'],dic_par['has_magnification'],zbins,thistracer.Nz,zbins,b_arr))
             else :
                 raise ValueError("Only \"point\" tracers supported")
 
@@ -49,17 +54,28 @@ class LSSTheory(object):
         elif has_sigma8:
             sigma8=dic_par['sigma_8']
             params=ccl.Parameters(Omega_c=omega_c,Omega_b=omega_b,Omega_k=omega_k,
-                                  Omega_n=omega_nu,w0=w,wa=wa,sigma8=sigma8,n_s=n_s,h=h0)
+                                  #Omega_n=omega_nu,
+                                  w0=w,wa=wa,sigma8=sigma8,n_s=n_s,h=h0)
         elif has_A_s:
             A_s = dic_par['A_s']
             params = ccl.Parameters(Omega_c=omega_c,Omega_b=omega_b,Omega_k=omega_k,
-                                    Omega_n=omega_nu,w0=w,wa=wa,A_s=A_s,n_s=n_s,h=h0)
+                                    #Omega_n=omega_nu,
+                                    w0=w,wa=wa,A_s=A_s,n_s=n_s,h=h0)
         else:
             raise ValueError("Need either sigma 8 or A_s in pyccl.")
 
-        cosmo=ccl.Cosmology(params,
-                            transfer_function=dic_par['transfer_function'],
-                            matter_power_spectrum=dic_par['matter_power_spectrum'])
+        if 'transfer_function' in dic_par and 'matter_power_spectrum' in dic_par:
+            cosmo=ccl.Cosmology(params,
+                                transfer_function=dic_par['transfer_function'],
+                                matter_power_spectrum=dic_par['matter_power_spectrum'])
+        elif 'transfer_function' in dic_par and not 'matter_power_spectrum' in dic_par:
+            cosmo=ccl.Cosmology(params,
+                                transfer_function=dic_par['transfer_function'])
+        elif 'transfer_function' not in dic_par and 'matter_power_spectrum' in dic_par:
+            cosmo=ccl.Cosmology(params,
+                                matter_power_spectrum=dic_par['matter_power_spectrum'])
+        else:
+            cosmo=ccl.Cosmology(params)
 
         return cosmo
 
@@ -67,7 +83,7 @@ class LSSTheory(object):
         theory_out=np.zeros((self.s.size(),))
         cosmo=self.get_cosmo(dic_par)
         tr=self.get_tracers(cosmo,dic_par)
-        for i1,i2,ells,ndx in self.s.sortTracers() :
+        for i1,i2,_,ells,ndx in self.s.sortTracers() :
             cls=ccl.angular_cl(cosmo,tr[i1],tr[i2],ells)
             theory_out[ndx]=cls
             
