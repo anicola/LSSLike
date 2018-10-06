@@ -14,11 +14,12 @@ dl=10
 zbins=[0.5,0.7,0.9,1.1]
 zbin_size=0.1
 
-def main():
+def main(dic_par):
 
-    cosmo=ccl.Cosmology(ccl.Parameters(Omega_c=0.27,Omega_b=0.045,h=0.67,sigma8=0.8,n_s=0.96,),
-                        transfer_function='eisenstein_hu',matter_power_spectrum='linear')
-    tracers,cltracers=getTracers(cosmo)
+    cosmo=ccl.Cosmology(ccl.Parameters(Omega_c=dic_par['omega_c'],Omega_b=dic_par['omega_b'],h=dic_par['h0'],sigma8=dic_par['sigma_8'],n_s=dic_par['n_s'],),
+                        transfer_function=dic_par['transfer_function'],
+                        matter_power_spectrum=dic_par['matter_power_spectrum'])
+    tracers,cltracers=getTracers(cosmo,dic_par)
     binning=getBinning(tracers)
     binning_sacc=sacc.SACC(tracers,binning)
     theories=getTheories(cosmo,binning_sacc,cltracers)
@@ -36,7 +37,7 @@ def main():
 
     
 
-def getTracers(cosmo):
+def getTracers(cosmo,dic_par):
     #Create SACC tracers and corresponding CCL tracers
     tracers=[]
     cltracers=[]
@@ -48,7 +49,7 @@ def getTracers(cosmo):
         bias=np.ones_like(zar)
         T.addColumns({'b':bias})
         tracers.append(T)
-        cltracers.append(ccl.ClTracerNumberCounts(cosmo,False,False,zar,Nz,zar,bias))
+        cltracers.append(ccl.ClTracerNumberCounts(cosmo,dic_par['has_rsd'],dic_par['has_magnification'],zar,Nz,zar,bias))
     return tracers, cltracers
 
 def getBinning(tracers):
@@ -117,7 +118,13 @@ def generate_sim(fname,s,add_random=True,store_precision=False, cholesky=None) :
 
 
 if __name__=="__main__":
-    main()
+
+    dic={'omega_c':0.27,'omega_b':0.045,'omega_k':0.0,'omega_nu':0.0,
+         'h0':0.67,'sigma_8':0.8,'n_s':0.96,
+         'transfer_function':'eisenstein_hu','matter_power_spectrum':'linear',
+         'has_rsd':False,'has_magnification':False}
+
+    main(dic)
     
                         
                         

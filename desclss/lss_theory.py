@@ -26,7 +26,7 @@ class LSSTheory(object):
                 
                 bf=interp1d(z_b_arr,b_b_arr,kind='nearest') #Assuming linear interpolation. Decide on extrapolation.
                 b_arr=bf(thistracer.z) #Assuming that tracers have this attribute
-                tr_out.append(ccl.ClTracerNumberCounts(cosmo,False,False,zbins,thistracer.Nz,zbins,b_arr))
+                tr_out.append(ccl.ClTracerNumberCounts(cosmo,dic_par['has_rsd'],dic_par['has_magnification'],zbins,thistracer.Nz,zbins,b_arr))
             else :
                 raise ValueError("Only \"point\" tracers supported")
 
