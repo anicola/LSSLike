@@ -2,6 +2,7 @@
 # A small utility class to deal with parameter vectors
 #
 import numpy as np
+import copy
 
 class ParamVec:
     def __init__(self):
@@ -38,6 +39,8 @@ class ParamVec:
     def bounds(self):
         return list(zip(self._minvalues,self._maxvalues))
     
+    def clone(self):
+        return copy.deepcopy(self)
     
     def __len__(self):
         return len(self._names)
