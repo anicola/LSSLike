@@ -9,15 +9,25 @@ from  scipy.stats import chi2 as chi2d
 from copy import deepcopy
 
 def main():
-    if len(sys.argv)<3:
+
+    fnames = []
+    Lmax = -1
+    for argnum in range(1, len(sys.argv)):
+        if '--Lmax=' in sys.argv[argnum]:
+            Lmax = int(sys.argv[argnum].split('--Lmax=')[-1])
+        else:
+            fnames.append(sys.argv[argnum])
+
+    if Lmax == -1:
+        Lmax = 200000
+
+    if len(fnames)<2:
         print ("Specify at least two files on input")
         sys.exit(1)
-    fnames=sys.argv[1:]
     saccsin=[[print ("Loading %s..."%fn),
            sacc.SACC.loadFromHDF(fn)].pop() for fn in fnames]
 
     Ntomo=len(saccsin[0].tracers)
-    Lmax=200000
     
     plt.figure()
     if Ntomo==4:
@@ -63,8 +73,11 @@ def main():
 
 
         if (itomo>=0):
-            plt.subplot(Nx,Ny,itomo+1)
+            sp = plt.subplot(Nx,Ny,itomo+1)
             plotDataTheory(saccs,mean)
+            clrcy='rgbycmk'
+            for (i,s) in enumerate(saccs):
+                plt.text(0.98, 0.98 - (0.06*i), s.tracers[0].exp_sample, fontsize = 6, color = clrcy[i], transform = sp.transAxes, ha = 'right', va = 'top')
 
     plt.show()
     
@@ -72,9 +85,11 @@ def plotDataTheory (saccs,mean):
     clrcy='rgbycmk'
     for i,s in enumerate(saccs):
         s.plot_vector(out_name=None,clr=clrcy[i],lofsf=1.01**i,
-                      label=s.tracers[0].exp_sample)
+                      label=s.tracers[0].exp_sample, show_legend=False)
     els=saccs[0].binning.binar['ls']
     plt.plot(els,mean,'k-',lw=2)
+
+
 
 if __name__=="__main__":
     main()
