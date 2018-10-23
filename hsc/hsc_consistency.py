@@ -12,9 +12,12 @@ def main():
 
     fnames = []
     Lmax = -1
+    crosscor = False
     for argnum in range(1, len(sys.argv)):
         if '--Lmax=' in sys.argv[argnum]:
             Lmax = int(sys.argv[argnum].split('--Lmax=')[-1])
+        elif '--crosscor' in sys.argv[argnum]
+            crosscor = True
         else:
             fnames.append(sys.argv[argnum])
 
@@ -29,7 +32,12 @@ def main():
 
     Ntomo=len(saccsin[0].tracers)
     
-    plt.figure()
+    autocorr_fig = plt.figure()
+    autocorr_sp = []
+
+    crosscor_fig = plt.figure()
+    crosscor_sp = []
+
     if Ntomo==4:
         Nx=Ny=2
     elif Ntomo==1:
@@ -71,23 +79,44 @@ def main():
             print 
             print ("{:20s} {:7.2f} {:7.2f} {:7.4f} ".format(s.tracers[0].exp_sample.replace("'","").replace("b'",""),chi2,dof,1-chi2d(df=dof).cdf(chi2)))
 
+        if not crosscor:        
+            if (itomo>=0):
+                sp = autocorr_fig.add_subplot(Nx,Ny,itomo+1)
+                autocorr_sp.append(sp)
+                plotDataTheory_autocor(saccs,mean)
+                clrcy='rgbycmk'
+                for (i,s) in enumerate(saccs):
+                    sp.text(0.98, 0.98 - (0.06*i), s.tracers[0].exp_sample, fontsize = 6, color = clrcy[i], transform = sp.transAxes, ha = 'right', va = 'top')
+        else:
+            if (itomo>=0):
+                sp = crosscor_fig.add_subplot(Nx,Ny,itomo+1)
+                crosscor_sp.append(sp)
+                plotDataTheory_crosscor(saccs,mean)
+                clrcy='rgbycmk'
+                for (i,s) in enumerate(saccs):
+                    sp.text(0.98, 0.98 - (0.06*i), s.tracers[0].exp_sample, fontsize = 6, color = clrcy[i], transform = sp.transAxes, ha = 'right', va = 'top')
 
-        if (itomo>=0):
-            sp = plt.subplot(Nx,Ny,itomo+1)
-            plotDataTheory(saccs,mean)
-            clrcy='rgbycmk'
-            for (i,s) in enumerate(saccs):
-                plt.text(0.98, 0.98 - (0.06*i), s.tracers[0].exp_sample, fontsize = 6, color = clrcy[i], transform = sp.transAxes, ha = 'right', va = 'top')
+                
 
     plt.show()
     
-def plotDataTheory (saccs,mean):
+def plotDataTheory_autocor (saccs,mean):
     clrcy='rgbycmk'
     for i,s in enumerate(saccs):
         s.plot_vector(out_name=None,clr=clrcy[i],lofsf=1.01**i,
                       label=s.tracers[0].exp_sample, show_legend=False)
     els=saccs[0].binning.binar['ls']
     plt.plot(els,mean,'k-',lw=2)
+
+
+def plotDataTheory_crosscor(saccs, mean):
+    clrcy='rgbycmk'
+    for i,s in enumerate(saccs):
+        s.plot_vector(out_name=None,clr=clrcy[i],lofsf=1.01**i, plot_cross = True,
+                      label=s.tracers[0].exp_sample, show_legend=False)
+    els=saccs[0].binning.binar['ls']
+    plt.plot(els,mean,'k-',lw=2)
+
 
 
 
