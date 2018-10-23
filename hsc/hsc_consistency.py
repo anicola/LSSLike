@@ -83,12 +83,13 @@ def main():
                 clrcy='rgbycmk'
                 for (i,s) in enumerate(saccs):
                     sp.text(0.98, 0.98 - (0.06*i), s.tracers[0].exp_sample, fontsize = 6, color = clrcy[i], transform = sp.transAxes, ha = 'right', va = 'top')
-            elif crosscor:
-                sp = fig.add_subplot(Nx,Ny,itomo+1)
-                plotDataTheory_crosscor(saccs)
-                clrcy='rgbycmk'
-                for (i,s) in enumerate(saccs):
-                    sp.text(0.98, 0.98 - (0.06*i), s.tracers[0].exp_sample, fontsize = 6, color = clrcy[i], transform = sp.transAxes, ha = 'right', va = 'top')
+    if crosscor:
+        for (i,s) in enumerate(saccs):
+            fig = plt.figure()
+            sp = fig.add_subplot(111)
+            plotDataTheory_crosscor(s)
+            clrcy='rgbycmk'
+            sp.text(0.98, 0.98 - (0.06*i), s.tracers[0].exp_sample, fontsize = 6, color = clrcy[i], transform = sp.transAxes, ha = 'right', va = 'top')
 
                 
 
