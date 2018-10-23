@@ -12,19 +12,24 @@ def main():
 
     fnames = []
     Lmax = -1
-    crosscor = False
+    crosscorr = False
+    savefigs = False
     for argnum in range(1, len(sys.argv)):
         if '--Lmax=' in sys.argv[argnum]:
             Lmax = int(sys.argv[argnum].split('--Lmax=')[-1])
         elif '--crosscorr' in sys.argv[argnum]:
-            crosscor = True
+            crosscorr = True
+        elif '--save' in sys.argv[argnum]:
+            savefigs = True
         else:
             fnames.append(sys.argv[argnum])
+    
+    surveynames = [f.split('/')[-2] for f in fnames]
 
     if Lmax == -1:
         Lmax = 200000
 
-    if len(fnames)<2:
+    if len(fnames)<2 and not crosscorr:
         print ("Specify at least two files on input")
         sys.exit(1)
     saccsin=[[print ("Loading %s..."%fn),
@@ -32,8 +37,8 @@ def main():
 
     Ntomo=len(saccsin[0].tracers)
     
-    fig = plt.figure()
-    splist = []
+    if not crosscorr:
+        fig = plt.figure()
 
     if Ntomo==4:
         Nx=Ny=2
@@ -77,21 +82,25 @@ def main():
             print ("{:20s} {:7.2f} {:7.2f} {:7.4f} ".format(s.tracers[0].exp_sample.replace("'","").replace("b'",""),chi2,dof,1-chi2d(df=dof).cdf(chi2)))
 
         if (itomo>=0):
-            if not crosscor:
+            if not crosscorr:
                 sp = fig.add_subplot(Nx,Ny,itomo+1)
                 plotDataTheory_autocor(saccs,mean)
                 clrcy='rgbycmk'
                 for (i,s) in enumerate(saccs):
                     sp.text(0.98, 0.98 - (0.06*i), s.tracers[0].exp_sample, fontsize = 6, color = clrcy[i], transform = sp.transAxes, ha = 'right', va = 'top')
-    if crosscor:
-        for (i,s) in enumerate(saccs):
+    if crosscorr:
+
+        for (i,s) in enumerate(saccsin):
             fig = plt.figure()
             sp = fig.add_subplot(111)
-            plotDataTheory_crosscor(s)
             clrcy='rgbycmk'
-            sp.text(0.98, 0.98 - (0.06*i), s.tracers[0].exp_sample, fontsize = 6, color = clrcy[i], transform = sp.transAxes, ha = 'right', va = 'top')
+            s.plot_vector(out_name=None,clr=clrcy[i],lofsf=1.01**i, plot_cross = True,
+                          label=surveynames[i], show_legend = False)
+            sp.text(0.98, 0.98, s.tracers[0].exp_sample, fontsize = 18, color = clrcy[i], transform = sp.transAxes, ha = 'right', va = 'top')
+            if savefigs:
+                plt.savefig(surveynames[i] + '.png', bbox_inches = 'tight')
+                plt.close()
 
-                
 
     plt.show()
     
@@ -102,14 +111,6 @@ def plotDataTheory_autocor (saccs,mean):
                       label=s.tracers[0].exp_sample, show_legend=False)
     els=saccs[0].binning.binar['ls']
     plt.plot(els,mean,'k-',lw=2)
-
-
-def plotDataTheory_crosscor(saccs):
-    clrcy='rgbycmk'
-    for i,s in enumerate(saccs):
-        s.plot_vector(out_name=None,clr=clrcy[i],lofsf=1.01**i, plot_cross = True,
-                      label=s.tracers[0].exp_sample, show_legend=False)
-
 
 
 
