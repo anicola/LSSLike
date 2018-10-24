@@ -91,9 +91,10 @@ def main():
     for (i,s) in enumerate(saccsin):
         for (x,sp_col) in enumerate(splist):
             for (y,sp_xy) in enumerate(sp_col):
-                s.plot_vector(sp_xy, plot_corr = [[x, y]], clr=clrcy[i],lofsf=1.01**i,
-                              label=surveynames[i], show_legend = False, show_axislabels = False)
-                sp_xy.set_ylim(10**-9, 10**-5)
+                s.plot_vector(sp_xy, plot_corr = [[x, y]], weightpow = 2, clr=clrcy[i],lofsf=1.01**i,
+                              label=surveynames[i], show_legend = False, show_axislabels = False, 
+                              set_logx=True, set_logy = False)
+                # sp_xy.set_ylim(10**-9, 10**-5)
                 if x==0 and y!=len(sp_col)-1:
                     sp_xy.set_xticklabels([])
                 if x!=0:
@@ -101,10 +102,10 @@ def main():
                 if x>y:
                     sp_xy.set_visible(False)
                 fig.text(0.9, 0.9-(i*0.05), surveynames[i], fontsize = 18, color = clrcy[i], ha = 'right', va = 'top')
-                sp_xy.text(0.98, 0.98, '$C_{%i%i}$' % (x,y), ha = 'right', va = 'top', fontsize = 18, transform = sp_xy.transAxes)
+                sp_xy.text(0.02, 0.02, '$C_{%i%i}$' % (x,y), ha = 'left', va = 'bottom', fontsize = 18, transform = sp_xy.transAxes)
     plt.subplots_adjust(wspace = 0, hspace = 0, top = 0.97, right = 0.97)
     fig.text(0.5, 0.0, r'$\ell$', fontsize = 18)
-    fig.text(0.04, 0.5, r'$C_\ell$', fontsize = 18, ha = 'center', va = 'center', rotation = 'vertical')
+    fig.text(0.04, 0.5, r'$\ell^2\,C_\ell$', fontsize = 18, ha = 'center', va = 'center', rotation = 'vertical')
     if savefig:
         plt.savefig(args.savefp, bbox_inches = 'tight')
     else:
