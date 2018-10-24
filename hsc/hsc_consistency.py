@@ -83,7 +83,7 @@ def main():
         #             sp.text(0.98, 0.98 - (0.06*i), s.tracers[0].exp_sample, fontsize = 6, color = clrcy[i], transform = sp.transAxes, ha = 'right', va = 'top')
 
 
-    fig, splist = plt.subplots(Ntomo,Ntomo)
+    fig, splist = plt.subplots(Ntomo,Ntomo, figsize = (7,7))
     clrcy='rgbycmk'
     splist = np.array(splist).T.tolist()
     for (i,s) in enumerate(saccsin):
@@ -98,7 +98,8 @@ def main():
                     splist[x][y].set_yticklabels([])
                 if x!=y:
                     splist[y][x].set_visible(False)
-            
+                fig.text(0.98, 0.98-(i*0.05), surveynames[i], fontsize = 18, color = clrcy[i], ha = 'right', va = 'top')
+                splist[x][y].text(0.98, 0.98, '$C_{%i%i}$' % (x,y), ha = 'right', va = 'top', fontsize = 18, transform = splist[x][y].transAxes)
     plt.subplots_adjust(wspace = 0, hspace = 0)
     fig.text(0.5, 0.0, r'$\ell$', fontsize = 18)
     fig.text(0.04, 0.5, r'$C_\ell$', fontsize = 18, ha = 'center', va = 'center', rotation = 'vertical')
