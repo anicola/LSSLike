@@ -74,15 +74,6 @@ def main():
             print 
             print ("{:20s} {:7.2f} {:7.2f} {:7.4f} ".format(s.tracers[0].exp_sample.replace("'","").replace("b'",""),chi2,dof,1-chi2d(df=dof).cdf(chi2)))
 
-        # if (itomo>=0):
-        #     if not crosscorr:
-        #         sp = fig.add_subplot(Nx,Ny,itomo+1)
-        #         plotDataTheory_autocor(saccs,mean)
-        #         clrcy='rgbycmk'
-        #         for (i,s) in enumerate(saccs):
-        #             sp.text(0.98, 0.98 - (0.06*i), s.tracers[0].exp_sample, fontsize = 6, color = clrcy[i], transform = sp.transAxes, ha = 'right', va = 'top')
-
-
     fig, splist = plt.subplots(Ntomo,Ntomo, figsize = (7,7))
     clrcy='rgbycmk'
     splist = np.array(splist).T.tolist()
@@ -104,23 +95,6 @@ def main():
     fig.text(0.5, 0.0, r'$\ell$', fontsize = 18)
     fig.text(0.04, 0.5, r'$C_\ell$', fontsize = 18, ha = 'center', va = 'center', rotation = 'vertical')
     plt.show()
-    
-        # for (i,s) in enumerate(saccsin):
-        #     fig = plt.figure()
-        #     sp = fig.add_subplot(111)
-            
-        #     s.plot_vector(out_name=None,clr=clrcy[i],lofsf=1.01**i, plot_cross = True,
-        #                   label=surveynames[i], show_legend = False)
-        #     sp.text(0.98, 0.98, s.tracers[0].exp_sample, fontsize = 18, color = clrcy[i], transform = sp.transAxes, ha = 'right', va = 'top')
-    
-# def plotDataTheory_autocor (saccs,mean):
-#     clrcy='rgbycmk'
-#     for i,s in enumerate(saccs):
-#         s.plot_vector(out_name=None,clr=clrcy[i],lofsf=1.01**i,
-#                       label=s.tracers[0].exp_sample, show_legend=False)
-#     els=saccs[0].binning.binar['ls']
-#     plt.plot(els,mean,'k-',lw=2)
-
 
 
 if __name__=="__main__":
