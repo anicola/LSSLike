@@ -14,7 +14,7 @@ def main():
 
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('fnames', help='Files to be included in the power spectrum plot.', type = str)
+    parser.add_argument('fnames', help='Files to be included in the power spectrum plot.', nargs='+')
     parser.add_argument('--Lmax', type = int, default = 200000,
         help = 'Set the maximum ell for which the power spectrum will be calculated')
     parser.add_argument('--savefp', type = str, default = None, 
@@ -26,19 +26,21 @@ def main():
 
     if not args.savefp == None:
         savefig = True
+    else:
+        savefig = False
 
     if args.bigfig:
         figsize = (14,14)
     else:
         figsize = (7,7)
 
-    surveynames = [f.split('/')[-2] for f in fnames]
+    surveynames = [f.split('/')[-2] for f in args.fnames]
 
-    if len(fnames)<2 and not crosscorr:
+    if len(args.fnames)<2 and not crosscorr:
         print ("Specify at least two files on input")
         sys.exit(1)
     saccsin=[[print ("Loading %s..."%fn),
-           sacc.SACC.loadFromHDF(fn)].pop() for fn in fnames]
+           sacc.SACC.loadFromHDF(fn)].pop() for fn in args.fnames]
 
     Ntomo=len(saccsin[0].tracers)
 
