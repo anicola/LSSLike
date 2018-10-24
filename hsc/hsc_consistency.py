@@ -12,11 +12,16 @@ def main():
 
     fnames = []
     Lmax = -1
-    crosscorr = False
-    savefigs = False
+    savefig = False
+    figsize = (7,7)
     for argnum in range(1, len(sys.argv)):
         if '--Lmax=' in sys.argv[argnum]:
             Lmax = int(sys.argv[argnum].split('--Lmax=')[-1])
+        if '--savefp=' in sys.argv[argnum]:
+            savefig = True
+            figname = sys.argv[argnum].split('--savefp=')[-1]
+        if '--bigfig' in sys.argv[argnum]:
+            figsize = (14,14)
         else:
             fnames.append(sys.argv[argnum])
     
@@ -74,7 +79,7 @@ def main():
             print 
             print ("{:20s} {:7.2f} {:7.2f} {:7.4f} ".format(s.tracers[0].exp_sample.replace("'","").replace("b'",""),chi2,dof,1-chi2d(df=dof).cdf(chi2)))
 
-    fig, splist = plt.subplots(Ntomo,Ntomo, figsize = (7,7))
+    fig, splist = plt.subplots(Ntomo,Ntomo, figsize = figsize)
     clrcy='rgbycmk'
     splist = np.array(splist).T.tolist()
     for (i,s) in enumerate(saccsin):
@@ -94,7 +99,10 @@ def main():
     plt.subplots_adjust(wspace = 0, hspace = 0)
     fig.text(0.5, 0.0, r'$\ell$', fontsize = 18)
     fig.text(0.04, 0.5, r'$C_\ell$', fontsize = 18, ha = 'center', va = 'center', rotation = 'vertical')
-    plt.show()
+    if savefig:
+        np.savefig(figname, bbox_inches = 'tight')
+    else:
+        plt.show()
 
 
 if __name__=="__main__":
