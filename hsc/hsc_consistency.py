@@ -17,10 +17,10 @@ def main():
     for argnum in range(1, len(sys.argv)):
         if '--Lmax=' in sys.argv[argnum]:
             Lmax = int(sys.argv[argnum].split('--Lmax=')[-1])
-        if '--savefp=' in sys.argv[argnum]:
+        elif '--savefp=' in sys.argv[argnum]:
             savefig = True
             figname = sys.argv[argnum].split('--savefp=')[-1]
-        if '--bigfig' in sys.argv[argnum]:
+        elif '--bigfig' in sys.argv[argnum]:
             figsize = (14,14)
         else:
             fnames.append(sys.argv[argnum])
@@ -94,13 +94,13 @@ def main():
                     splist[x][y].set_yticklabels([])
                 if x!=y:
                     splist[y][x].set_visible(False)
-                fig.text(0.98, 0.98-(i*0.05), surveynames[i], fontsize = 18, color = clrcy[i], ha = 'right', va = 'top')
+                fig.text(0.9, 0.9-(i*0.05), surveynames[i], fontsize = 18, color = clrcy[i], ha = 'right', va = 'top')
                 splist[x][y].text(0.98, 0.98, '$C_{%i%i}$' % (x,y), ha = 'right', va = 'top', fontsize = 18, transform = splist[x][y].transAxes)
-    plt.subplots_adjust(wspace = 0, hspace = 0)
+    plt.subplots_adjust(wspace = 0, hspace = 0, top = 0.97, right = 0.97)
     fig.text(0.5, 0.0, r'$\ell$', fontsize = 18)
     fig.text(0.04, 0.5, r'$C_\ell$', fontsize = 18, ha = 'center', va = 'center', rotation = 'vertical')
     if savefig:
-        np.savefig(figname, bbox_inches = 'tight')
+        plt.savefig(figname, bbox_inches = 'tight')
     else:
         plt.show()
 
