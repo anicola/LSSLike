@@ -85,13 +85,23 @@ def main():
 
     fig, splist = plt.subplots(Ntomo,Ntomo)
     clrcy='rgbycmk'
+    splist = np.array(splist).T.tolist()
     for (i,s) in enumerate(saccsin):
         for x in range(len(splist)):
             for y in range(x, len(splist[x])):
-                splist[y][x].cla()
                 s.plot_vector(splist[x][y], plot_corr = [[x, y]], clr=clrcy[i],lofsf=1.01**i,
-                              label=surveynames[i], show_legend = False)
+                              label=surveynames[i], show_legend = False, show_axislabels = False)
+                splist[x][y].set_ylim(10**-9, 10**-5)
+                if x==0 and y!=len(splist[x])-1:
+                    splist[x][y].set_xticklabels([])
+                if x!=0:
+                    splist[x][y].set_yticklabels([])
+                if x!=y:
+                    splist[y][x].set_visible(False)
             
+    plt.subplots_adjust(wspace = 0, hspace = 0)
+    fig.text(0.5, 0.0, r'$\ell$', fontsize = 18)
+    fig.text(0.04, 0.5, r'$C_\ell$', fontsize = 18, ha = 'center', va = 'center', rotation = 'vertical')
     plt.show()
     
         # for (i,s) in enumerate(saccsin):
