@@ -7,28 +7,32 @@ import matplotlib.pyplot as plt
 import scipy.linalg as la
 from  scipy.stats import chi2 as chi2d
 from copy import deepcopy
+import argparse
+
 
 def main():
 
-    fnames = []
-    Lmax = -1
-    savefig = False
-    figsize = (7,7)
-    for argnum in range(1, len(sys.argv)):
-        if '--Lmax=' in sys.argv[argnum]:
-            Lmax = int(sys.argv[argnum].split('--Lmax=')[-1])
-        elif '--savefp=' in sys.argv[argnum]:
-            savefig = True
-            figname = sys.argv[argnum].split('--savefp=')[-1]
-        elif '--bigfig' in sys.argv[argnum]:
-            figsize = (14,14)
-        else:
-            fnames.append(sys.argv[argnum])
-    
-    surveynames = [f.split('/')[-2] for f in fnames]
+    parser = argparse.ArgumentParser()
 
-    if Lmax == -1:
-        Lmax = 200000
+    parser.add_argument('fnames', help='Files to be included in the power spectrum plot.', type = str)
+    parser.add_argument('--Lmax', type = int, default = 200000,
+        help = 'Set the maximum ell for which the power spectrum will be calculated')
+    parser.add_argument('--savefp', type = str, default = None, 
+        help = 'Filepath for the saved figure.  Will not produce a figure on screen.')
+    parser.add_argument('--bigfig', action = 'store_true', 
+        help = 'Plots a much larger figure, which can be used to help differentiate the lines.')
+
+    args = parser.parse_args()
+
+    if not args.savefp == None:
+        savefig = True
+
+    if args.bigfig:
+        figsize = (14,14)
+    else:
+        figsize = (7,7)
+
+    surveynames = [f.split('/')[-2] for f in fnames]
 
     if len(fnames)<2 and not crosscorr:
         print ("Specify at least two files on input")
@@ -51,10 +55,10 @@ def main():
         saccs=[deepcopy(s) for s in saccsin]
         if itomo<0:
             lmin=[0]*Ntomo
-            lmax=[Lmax]*Ntomo
+            lmax=[args.Lmax]*Ntomo
         else:
             lmin=[100000]*Ntomo
-            lmax=[Lmax]*Ntomo
+            lmax=[args.Lmax]*Ntomo
             lmin[itomo]=0
             
         for s in saccs:
@@ -79,28 +83,28 @@ def main():
             print 
             print ("{:20s} {:7.2f} {:7.2f} {:7.4f} ".format(s.tracers[0].exp_sample.replace("'","").replace("b'",""),chi2,dof,1-chi2d(df=dof).cdf(chi2)))
 
-    fig, splist = plt.subplots(Ntomo,Ntomo, figsize = figsize)
+    fig, splist = plt.subplots(Ntomo, Ntomo, figsize = figsize)
     clrcy='rgbycmk'
     splist = np.array(splist).T.tolist()
     for (i,s) in enumerate(saccsin):
-        for x in range(len(splist)):
-            for y in range(x, len(splist[x])):
-                s.plot_vector(splist[x][y], plot_corr = [[x, y]], clr=clrcy[i],lofsf=1.01**i,
+        for (x,sp_col) in enumerate(splist):
+            for (y,sp_xy) in enumerate(sp_col):
+                s.plot_vector(sp_xy, plot_corr = [[x, y]], clr=clrcy[i],lofsf=1.01**i,
                               label=surveynames[i], show_legend = False, show_axislabels = False)
-                splist[x][y].set_ylim(10**-9, 10**-5)
-                if x==0 and y!=len(splist[x])-1:
-                    splist[x][y].set_xticklabels([])
+                sp_xy.set_ylim(10**-9, 10**-5)
+                if x==0 and y!=len(sp_col)-1:
+                    sp_xy.set_xticklabels([])
                 if x!=0:
-                    splist[x][y].set_yticklabels([])
-                if x!=y:
-                    splist[y][x].set_visible(False)
+                    sp_xy.set_yticklabels([])
+                if x>y:
+                    sp_xy.set_visible(False)
                 fig.text(0.9, 0.9-(i*0.05), surveynames[i], fontsize = 18, color = clrcy[i], ha = 'right', va = 'top')
-                splist[x][y].text(0.98, 0.98, '$C_{%i%i}$' % (x,y), ha = 'right', va = 'top', fontsize = 18, transform = splist[x][y].transAxes)
+                sp_xy.text(0.98, 0.98, '$C_{%i%i}$' % (x,y), ha = 'right', va = 'top', fontsize = 18, transform = sp_xy.transAxes)
     plt.subplots_adjust(wspace = 0, hspace = 0, top = 0.97, right = 0.97)
     fig.text(0.5, 0.0, r'$\ell$', fontsize = 18)
     fig.text(0.04, 0.5, r'$C_\ell$', fontsize = 18, ha = 'center', va = 'center', rotation = 'vertical')
     if savefig:
-        plt.savefig(figname, bbox_inches = 'tight')
+        plt.savefig(args.savefp, bbox_inches = 'tight')
     else:
         plt.show()
 
