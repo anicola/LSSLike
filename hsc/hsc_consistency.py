@@ -17,10 +17,6 @@ def main():
     for argnum in range(1, len(sys.argv)):
         if '--Lmax=' in sys.argv[argnum]:
             Lmax = int(sys.argv[argnum].split('--Lmax=')[-1])
-        elif '--crosscorr' in sys.argv[argnum]:
-            crosscorr = True
-        elif '--save' in sys.argv[argnum]:
-            savefigs = True
         else:
             fnames.append(sys.argv[argnum])
     
@@ -36,9 +32,6 @@ def main():
            sacc.SACC.loadFromHDF(fn)].pop() for fn in fnames]
 
     Ntomo=len(saccsin[0].tracers)
-    
-    if not crosscorr:
-        fig = plt.figure()
 
     if Ntomo==4:
         Nx=Ny=2
@@ -96,7 +89,7 @@ def main():
         for x in range(len(splist)):
             for y in range(x, len(splist[x])):
                 splist[y][x].cla()
-                s.plot_vector(splist[x][y],clr=clrcy[i],lofsf=1.01**i, plot_cross = True,
+                s.plot_vector(splist[x][y], plot_corr = [[x, y]], clr=clrcy[i],lofsf=1.01**i,
                               label=surveynames[i], show_legend = False)
             
     plt.show()
