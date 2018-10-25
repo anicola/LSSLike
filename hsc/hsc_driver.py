@@ -127,7 +127,7 @@ class HSCAnalyze:
          'Omega_b':0.0486,
          'Omega_k':0.0,
          'Omega_nu':0.001436176,
-         'h0':67.74,
+         'h0':0.6774,
          'n_s':0.96,
          'sigma_8':s8,
          'transfer_function':'eisenstein_hu',
@@ -168,8 +168,7 @@ class HSCAnalyze:
         cls=self.predictTheory(self.P.values())
         for i,s in enumerate(self.saccs):
             #plt.subplot(3,3,i+1)
-            print(i)
-            s.plot_vector(subplot,plot_corr = 'auto',prediction=cls[i],clr=clrcy[i],lofsf=1.01**i,weightpow=1,
+            s.plot_vector(subplot,plot_corr = 'auto',prediction=cls[i],clr=clrcy[i],lofsf=1.01**i,weightpow=0,
                           label=self.saccs[0].tracers[0].name, show_axislabels = True, show_legend=False)
             #plt.title(s.tracers[0].name)
         plt.show()
