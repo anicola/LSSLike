@@ -21,6 +21,8 @@ def main():
         help = 'Filepath for the saved figure.  Will not produce a figure on screen.')
     parser.add_argument('--bigfig', action = 'store_true', 
         help = 'Plots a much larger figure, which can be used to help differentiate the lines.')
+    parser.add_argument('--weightpow', type = int, default = 2, choices = [1,2], 
+        help = r'The power of \ell by which the C_\ell values will be weighted (must be 1 or 2).')
 
     args = parser.parse_args()
 
@@ -91,7 +93,7 @@ def main():
     for (i,s) in enumerate(saccsin):
         for (x,sp_col) in enumerate(splist):
             for (y,sp_xy) in enumerate(sp_col):
-                s.plot_vector(sp_xy, plot_corr = [[x, y]], weightpow = 2, clr=clrcy[i],lofsf=1.01**i,
+                s.plot_vector(sp_xy, plot_corr = [[x, y]], weightpow = args.weightpow, clr=clrcy[i],lofsf=1.01**i,
                               label=surveynames[i], show_legend = False, show_axislabels = False, 
                               set_logx=True, set_logy = False)
                 # sp_xy.set_ylim(10**-9, 10**-5)
@@ -105,7 +107,11 @@ def main():
                 sp_xy.text(0.02, 0.02, '$C_{%i%i}$' % (x,y), ha = 'left', va = 'bottom', fontsize = 18, transform = sp_xy.transAxes)
     plt.subplots_adjust(wspace = 0, hspace = 0, top = 0.97, right = 0.97)
     fig.text(0.5, 0.0, r'$\ell$', fontsize = 18)
-    fig.text(0.04, 0.5, r'$\ell^2\,C_\ell$', fontsize = 18, ha = 'center', va = 'center', rotation = 'vertical')
+    if args.weightpow == 1:
+        elltext = r'$\ell\,$'
+    elif args.weightpow == 2:
+        elltext = r'$\ell^2\,$'
+    fig.text(0.04, 0.5, elltext + r'$C_\ell$', fontsize = 18, ha = 'center', va = 'center', rotation = 'vertical')
     if savefig:
         plt.savefig(args.savefp, bbox_inches = 'tight')
     else:
