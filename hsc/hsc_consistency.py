@@ -87,7 +87,7 @@ def main():
             print 
             print ("{:20s} {:7.2f} {:7.2f} {:7.4f} ".format(s.tracers[0].exp_sample.replace("'","").replace("b'",""),chi2,dof,1-chi2d(df=dof).cdf(chi2)))
 
-    fig, splist = plt.subplots(Ntomo, Ntomo, figsize = figsize)
+    fig, splist = plt.subplots(Ntomo, Ntomo, figsize = figsize, sharey = True, sharex = True)
     clrcy='rgbycmk'
     splist = np.array(splist).T.tolist()
     for (i,s) in enumerate(saccsin):
@@ -97,10 +97,10 @@ def main():
                               label=surveynames[i], show_legend = False, show_axislabels = False, 
                               set_logx=True, set_logy = False)
                 # sp_xy.set_ylim(10**-9, 10**-5)
-                if x==0 and y!=len(sp_col)-1:
-                    sp_xy.set_xticklabels([])
-                if x!=0:
-                    sp_xy.set_yticklabels([])
+                #if x==0 and y!=len(sp_col)-1:
+                #    sp_xy.set_xticklabels([])
+                #if x!=0:
+                #    sp_xy.set_yticklabels([])
                 if x>y:
                     sp_xy.set_visible(False)
                 fig.text(0.9, 0.9-(i*0.05), surveynames[i], fontsize = 18, color = clrcy[i], ha = 'right', va = 'top')
