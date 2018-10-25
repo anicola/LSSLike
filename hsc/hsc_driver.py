@@ -16,6 +16,7 @@ class HSCAnalyze:
 
     def __init__(self, fnames, lmin='auto', lmax='auto',
                  fitOc=False, Oc=0.25,
+                 fits8=False, s8=0.8,
                  fitBias=True,
                  zbias=[0.0,0.5,1.0,2.0,4.0],
                  bias=[0.7,1.5,1.8,2.0,2.5],
@@ -44,7 +45,7 @@ class HSCAnalyze:
 
         self.fixnames()
         self.cutLranges(lmin,lmax)
-        self.setParametes(fitOc,Oc,fitBias,zbias,bias,fitNoise,noise,fitPZShifts,pzshifts)
+        self.setParametes(fitOc,Oc,fits8,s8,fitBias,zbias,bias,fitNoise,noise,fitPZShifts,pzshifts)
             
         self.lts=[LSSTheory(s) for s in self.saccs]
         self.lks=[LSSLikelihood(s) for s in self.saccs]
@@ -82,10 +83,12 @@ class HSCAnalyze:
         for s in self.saccs:
             s.cullLminLmax(self.lmin,self.lmax)
 
-    def setParametes(self,fitOc,Oc,fitBias,zbias,bias,fitNoise,noise,fitPZShifts,pzshifts):
+    def setParametes(self,fitOc,Oc,fits8,s8,fitBias,zbias,bias,fitNoise,noise,fitPZShifts,pzshifts):
         #### set up parameters
         self.fitOc=fitOc
         self.Oc=Oc
+        self.fits8=fits8
+        self.s8=s8
         self.fitBias=fitBias
         self.zbias=zbias
         self.bias=bias
@@ -97,6 +100,8 @@ class HSCAnalyze:
         self.P=ParamVec()
         if self.fitOc:
             self.P.addParam('Oc',Oc,'$\\Omega_c$',min=0.2,max=0.4)
+        if self.fits8:
+            self.P.addParam('s8',s8, '$\sigma_8$',min=0.1,max=2.0)
         if self.fitBias:
             for z,b in zip(self.zbias,self.bias):
                 self.P.addParam('b_%2.1f'%z,b,min=0.5,max=5) 
@@ -117,7 +122,14 @@ class HSCAnalyze:
         P=self.P.clone()
         P.setValues(p)
         oc=P.value(Oc) if self.fitOc else self.Oc
+        s8=P.value(s8) if self.fits8 else self.s8
         dic={'Omega_c':oc,
+         'Omega_b':0.0486,
+         'Omega_k':0.0,
+         'Omega_nu':0.001436176,
+         'h0':67.74,
+         'n_s':0.96,
+         'sigma_8':s8,
          'transfer_function':'eisenstein_hu',
          'matter_power_spectrum':'linear',
          'has_rsd':False,'has_magnification':False}
@@ -135,7 +147,7 @@ class HSCAnalyze:
         if self.fitPZShifts:
             for i in range(self.Ntomo):
                 dic['zshift_bin%i'%i]=P.value('s_%i'%i)
-        cls=[lt.getPrediction(dic) for lt in self.lts]
+        cls=[lt.get_prediction(dic) for lt in self.lts]
         return cls
     
     #Define log(p). This is just a wrapper around the LSSLikelihood lk
@@ -150,13 +162,15 @@ class HSCAnalyze:
         return self.logprobs(p).sum()
     
     def plotDataTheory(self):
-        plt.figure()
+        fig = plt.figure()
+        subplot=fig.add_subplot(111)
         clrcy='rgbycmk'
         cls=self.predictTheory(self.P.values())
         for i,s in enumerate(self.saccs):
             #plt.subplot(3,3,i+1)
-            s.plot_vector(prediction=cls[i],out_name=None,clr=clrcy[i],lofsf=1.01**i,
-                          label=self.saccs[0].tracers[0].name)
+            print(i)
+            s.plot_vector(subplot,plot_corr = 'auto',prediction=cls[i],clr=clrcy[i],lofsf=1.01**i,weightpow=1,
+                          label=self.saccs[0].tracers[0].name, show_axislabels = True, show_legend=False)
             #plt.title(s.tracers[0].name)
         plt.show()
 

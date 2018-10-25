@@ -4,8 +4,8 @@ import sacc
 from scipy.interpolate import interp1d
 
 class LSSTheory(object):
-    def __init__(self,data_file) :
-        self.s=sacc.SACC.loadFromHDF(data_file)
+    def __init__(self,inputsacc) :
+        self.s=inputsacc
         if self.s.binning==None :
             raise ValueError("Binning needed!")
 
@@ -33,10 +33,10 @@ class LSSTheory(object):
         return tr_out
 
     def get_cosmo(self,dic_par) :
-        omega_c = dic_par['omega_c']
-        omega_b = dic_par['omega_b']
-        omega_k = dic_par['omega_k']
-        omega_nu = dic_par['omega_nu']
+        omega_c = dic_par['Omega_c']
+        omega_b = dic_par['Omega_b']
+        omega_k = dic_par['Omega_k']
+        omega_nu = dic_par['Omega_nu']
         if 'w' in dic_par :
             w = dic_par['w']
         else :
