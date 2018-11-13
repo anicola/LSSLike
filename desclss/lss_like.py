@@ -16,7 +16,6 @@ class LSSLikelihood(object):
             raise ValueError("Precision matrix needed!")
         if self.s.mean==None :
             raise ValueError("Mean vector needed!")
-
         self.pmatrix = self.s.precision.getPrecisionMatrix()
 
     #We're assuming data_theory will come in the form of a sacc.Means object
@@ -26,5 +25,4 @@ class LSSLikelihood(object):
     def chi2(self,theory_vec):
         delta=theory_vec - self.s.mean.vector
         chi2=np.einsum('i,ij,j',delta,self.pmatrix,delta)
-#        chi2=np.linalg.multi_dot([delta,self.s.precision.matrix,delta])
         return chi2
