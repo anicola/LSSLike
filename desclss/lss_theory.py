@@ -4,6 +4,7 @@ import sacc
 from scipy.interpolate import interp1d
 
 class LSSTheory(object):
+
     def __init__(self,sacc):
         if  type(sacc)==str:
             sacc=sacc.SACC.loadFromHDF(sacc)
@@ -29,14 +30,13 @@ class LSSTheory(object):
                     zbins = thistracer.z                
                 bf=interp1d(z_b_arr,b_b_arr,kind='nearest') #Assuming linear interpolation. Decide on extrapolation.
                 b_arr=bf(thistracer.z) #Assuming that tracers have this attribute
-                tr_out.append(ccl.ClTracerNumberCounts(cosmo,has_rsd,
-                                has_magnification,n=thistracer.Nz,bias=b_arr,z=zbins))
+                tr_out.append(ccl.ClTracerNumberCounts(cosmo, dic_par['has_rsd'],dic_par['has_magnification'],
+                                                       z = thistracer.z, n=(zbins, thistracer.Nz), bias = (z_b_arr, b_b_arr)))
             else :
                 raise ValueError("Only \"point\" tracers supported")
         return tr_out
 
     def get_cosmo(self,dic_par) :
-        
         Omega_c = dic_par.get('Omega_c',0.255)
         Omega_b = dic_par.get('Omega_b', 0.045)
         Omega_k = dic_par.get('Omega_k', 0.0)
@@ -65,7 +65,7 @@ class LSSTheory(object):
                                 matter_power_spectrum=dic_par['matter_power_spectrum'])
         return cosmo
 
-    def getPrediction(self,dic_par) :
+    def get_prediction(self,dic_par) :
         theory_out=np.zeros((self.s.size(),))
         cosmo=self.get_cosmo(dic_par)
         tr=self.get_tracers(cosmo,dic_par)
