@@ -16,14 +16,15 @@ class HSCAnalyze:
 
     def __init__(self, fnames, lmin='auto', lmax='auto',
                  fitOc=True, Oc=0.25,
-                 fits8=True, s8=0.8,
-                 fith0=True, h0 = 0.6774,
-                 fitBias=False,
+                 fits8=False, s8=0.8,
+                 fith0=False, h0 = 0.6774,
+                 fitBias=True,
                  zbias=[0.0,0.5,1.0,2.0,4.0],
                  bias=[0.7,1.5,1.8,2.0,2.5],
-                 fitNoise=False, noise=0.75, ## in units of 1e-8
+                 fitNoise=True, noise=0.75, ## in units of 1e-8
                  fitPZShifts=False,
                  pzshifts=[0,0,0,0],
+                 join_saccs=True,   ## If true, Cinverse add all saccs into one
                  log=logging.DEBUG):
 
         if type(log)==logging.Logger:
@@ -41,6 +42,9 @@ class HSCAnalyze:
         self.saccs=[sacc.SACC.loadFromHDF(fn) for fn in fnames]
         self.log.info ("Loaded %i sacc files."%len(self.saccs))
 
+        if join_saccs:
+            self.saccs=[sacc.coadd(self.saccs)]
+        
         self.Ntomo=len(self.saccs[0].tracers) ## number of tomo bins
         self.log.info ("Ntomo bins: %i"%self.Ntomo)
 
@@ -105,7 +109,7 @@ class HSCAnalyze:
             self.P.addParam('Oc',Oc,'$\\Omega_c$',min=0.2,max=0.4)
         if self.fits8:
             self.P.addParam('s8',s8, '$\sigma_8$',min=0.1,max=2.0)
-        if self.h0:
+        if self.fith0:
             self.P.addParam('h0',h0, '$h_0$',min=0.65,max=0.75)
         if self.fitBias:
             for z,b in zip(self.zbias,self.bias):
@@ -161,7 +165,8 @@ class HSCAnalyze:
         cls=self.predictTheory(p)
         #print (cls)
         likes=np.array([lk(cl) for lk,cl in zip(self.lks,cls)])
-        self.log.debug("parameters: "+str(p)+" -> chi2= "+str(-2*likes.sum()))
+        dof=np.array([len(cl) for cl in cls])
+        self.log.debug("parameters: "+str(p)+" -> chi2= "+str(-2*likes.sum())+" dof= "+str(dof.sum()))
         return likes
 
     def logprob(self,p):
@@ -226,6 +231,6 @@ if __name__=="__main__":
         exit(1)
 
     h=HSCAnalyze(sys.argv[1:])
-    h.plotDataTheory()
-    #h.minimize()
+    #h.plotDataTheory()
+    h.minimize()
     #h.MCMCSample()

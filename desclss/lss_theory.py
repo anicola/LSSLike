@@ -5,7 +5,7 @@ from scipy.interpolate import interp1d
 
 class LSSTheory(object):
 
-  def __init__(self,sacc):
+    def __init__(self,sacc):
         if  type(sacc)==str:
             sacc=sacc.SACC.loadFromHDF(sacc)
         self.s=sacc
@@ -65,7 +65,7 @@ class LSSTheory(object):
                                 matter_power_spectrum=dic_par['matter_power_spectrum'])
         return cosmo
 
-    def getPrediction(self,dic_par) :
+    def get_prediction(self,dic_par) :
         theory_out=np.zeros((self.s.size(),))
         cosmo=self.get_cosmo(dic_par)
         tr=self.get_tracers(cosmo,dic_par)
