@@ -25,6 +25,7 @@ class HSCAnalyze:
                  fitPZShifts=False,
                  pzshifts=[0,0,0,0],
                  join_saccs=True,   ## If true, Cinverse add all saccs into one
+                 cull_cross=True,  ## If true, use just auto
                  log=logging.DEBUG):
 
         if type(log)==logging.Logger:
@@ -44,7 +45,11 @@ class HSCAnalyze:
 
         if join_saccs:
             self.saccs=[sacc.coadd(self.saccs)]
-        
+        if cull_cross:
+            for s in self.saccs:
+                s.cullCross()
+    
+            
         self.Ntomo=len(self.saccs[0].tracers) ## number of tomo bins
         self.log.info ("Ntomo bins: %i"%self.Ntomo)
 
@@ -116,8 +121,10 @@ class HSCAnalyze:
                 self.P.addParam('b_%2.1f'%z,b,min=0.5,max=5) 
 
         if self.fitNoise:
+            if not (type(noise)==list):
+                noise=[noise]*self.Ntomo
             for i in range(self.Ntomo):
-                self.P.addParam('Pw_%i'%i,noise,min=0.0,max=10)  ## in units of 1e-8
+                self.P.addParam('Pw_%i'%i,noise[i],min=0.0,max=10)  ## in units of 1e-8
 
         if self.fitPZShifts:
             for i in range(self.Ntomo):
@@ -230,7 +237,10 @@ if __name__=="__main__":
         print ("Usage ./hsc_driver.py saccfiles")
         exit(1)
 
+    if False:
+        h=HSCAnalyze(sys.argv[1:], Oc=0.4,   bias=[1.36719745,  1.44648823,  1.58481978,  2.78524986,  2.48624793],
+                 fitNoise=True, noise=[10.,          5.36774973,  4.14486325,  2.7542516])
+        h.plotDataTheory()
     h=HSCAnalyze(sys.argv[1:])
-    #h.plotDataTheory()
     h.minimize()
     #h.MCMCSample()
