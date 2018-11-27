@@ -15,7 +15,7 @@ class LSSTheory(object):
     def get_tracers(self,cosmo,dic_par) :
         tr_out=[]
         has_rsd=dic_par.get('has_rds',False)
-        has_magnification=dic_par.get('has_magnification',False)
+        has_magnification=dic_par.get('has_magnification',None)
         for (tr_index, thistracer) in enumerate(self.s.tracers) :
             if thistracer.type.__contains__('point'):
                 try:
@@ -30,8 +30,8 @@ class LSSTheory(object):
                     zbins = thistracer.z                
                 bf=interp1d(z_b_arr,b_b_arr,kind='nearest') #Assuming linear interpolation. Decide on extrapolation.
                 b_arr=bf(thistracer.z) #Assuming that tracers have this attribute
-                tr_out.append(ccl.ClTracerNumberCounts(cosmo, dic_par['has_rsd'],dic_par['has_magnification'],
-                                                       z = thistracer.z, n=(zbins, thistracer.Nz), bias = (z_b_arr, b_b_arr)))
+                tr_out.append(ccl.NumberCountsTracer(cosmo, has_rsd=dic_par['has_rsd'], dndz=(zbins, thistracer.Nz), \
+                                                     bias=(z_b_arr, b_b_arr), mag_bias=dic_par['has_magnification']))
             else :
                 raise ValueError("Only \"point\" tracers supported")
         return tr_out
@@ -47,22 +47,24 @@ class LSSTheory(object):
         n_s = dic_par.get('n_s', 0.96)
         has_sigma8 = ('sigma_8' in dic_par)
         has_A_s = ('A_s' in dic_par)
+
+        transfer_function=dic_par.get('transfer_function','boltzmann_class')
+        matter_power_spectrum=dic_par.get('matter_power_spectrum','halofit')
+
         if has_sigma8 and has_A_s:
             raise ValueError("Specifying both sigma8 and A_s: pick one")
         elif has_A_s:
             A_s = dic_par['A_s']
-            params=ccl.Parameters(Omega_c=Omega_c,Omega_b=Omega_b,Omega_k=Omega_k,
-                                  w0=w,wa=wa,A_s=A_s,n_s=n_s,h=h0)
+            cosmo=ccl.Cosmology(Omega_c=Omega_c, Omega_b=Omega_b, Omega_k=Omega_k, w0=w, wa=wa, A_s=A_s, n_s=n_s, h=h0,
+                                transfer_function=dic_par['transfer_function'],
+                                matter_power_spectrum=dic_par['matter_power_spectrum'])
 
         else:
             sigma8=dic_par.get('sigma_8',0.8)
-            params=ccl.Parameters(Omega_c=Omega_c,Omega_b=Omega_b,Omega_k=Omega_k,
-                                  w0=w,wa=wa,sigma8=sigma8,n_s=n_s,h=h0)
-
-        transfer_function=dic_par.get('transfer_function','boltzmann_class')
-        matter_power_spectrum=dic_par.get('matter_power_spectrum','halofit')
-        cosmo=ccl.Cosmology(params, transfer_function=dic_par['transfer_function'],
+            cosmo=ccl.Cosmology(Omega_c=Omega_c, Omega_b=Omega_b, Omega_k=Omega_k, w0=w, wa=wa, sigma8=sigma8, n_s=n_s, h=h0,
+                                transfer_function=dic_par['transfer_function'],
                                 matter_power_spectrum=dic_par['matter_power_spectrum'])
+
         return cosmo
 
     def get_prediction(self,dic_par) :

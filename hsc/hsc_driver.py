@@ -4,6 +4,7 @@ import numpy as np
 import logging
 import scipy.optimize
 import matplotlib.pyplot as plt
+import pyccl as ccl
 
 import sacc
 from desclss import LSSTheory,LSSLikelihood
@@ -14,7 +15,7 @@ from ParamVec import ParamVec
 
 class HSCAnalyze:
 
-    def __init__(self, fnames, lmin='auto', lmax='auto',
+    def __init__(self, fnames, lmin='auto', lmax='auto', kmax=None, zeff=None, cosmo=None,
                  fitOc=True, Oc=0.25,
                  fits8=False, s8=0.8,
                  fith0=False, h0 = 0.6774,
@@ -54,7 +55,7 @@ class HSCAnalyze:
         self.log.info ("Ntomo bins: %i"%self.Ntomo)
 
         self.fixnames()
-        self.cutLranges(lmin,lmax)
+        self.cutLranges(lmin, lmax, kmax, zeff, cosmo)
         self.setParametes(fitOc,Oc,fits8,s8,fith0,h0,fitBias,zbias,bias,fitNoise,noise,fitPZShifts,pzshifts)
             
         self.lts=[LSSTheory(s) for s in self.saccs]
@@ -72,7 +73,7 @@ class HSCAnalyze:
                 t.exp_sample='hscgals'
 
 
-    def cutLranges(self,lmin,lmax):
+    def cutLranges(self, lmin, lmax, kmax, zeff, cosmo):
         # lmax as a function of sample
         if lmax=='auto':
             if self.Ntomo==1:
@@ -86,12 +87,49 @@ class HSCAnalyze:
             else:
                 print ("weird Ntomo")
                 stop()
+        elif lmax == 'kmax':
+            assert kmax is not None, 'kmax not provided.'
+            assert zeff is not None, 'zeff array not provided.'
+            assert self.Ntomo == zeff.shape[0], 'zeff shape does not match number of tomographic bins.'
+            self.log.info('Computing lmax according to specified kmax = {}.'.format(kmax))
+
+            self.lmax = self.kmax2lmax(kmax, zeff, cosmo)
+
+            if self.Ntomo == 1:
+                self.lmin = [0]
+            elif self.Ntomo == 4:
+                self.lmin=[0,0,0,0]
+            else:
+                print ("weird Ntomo")
+                stop()
+
         else:
             self.lmin=lmin
             self.lmax=lmax
 
+        self.log.info('lmin = {}, lmax = {}.'.format(self.lmin, self.lmax))
+
         for s in self.saccs:
             s.cullLminLmax(self.lmin,self.lmax)
+
+    def kmax2lmax(self, kmax, zeff, cosmo=None):
+        """
+        Determine lmax corresponding to given kmax at an effective redshift zeff according to
+        kmax = (lmax + 1/2)/chi(zeff)
+        :param kmax: maximal wavevector in Mpc^-1
+        :param zeff: effective redshift of sample
+        :return lmax: maximal angular multipole corresponding to kmax
+        """
+
+        if cosmo is None:
+            self.log.info('CCL cosmology object not supplied. Initializing with Planck 2018 cosmological parameters.')
+            cosmo = ccl.Cosmology(n_s=0.9649, A_s=2.1e-9, h=0.6736, Omega_c=0.264, Omega_b=0.0493)
+
+        # Comoving angular diameter distance in Mpc
+        chi_A = ccl.comoving_angular_distance(cosmo, 1./(1.+zeff))
+        lmax = kmax*chi_A - 1./2.
+
+        return lmax
 
     def setParametes(self,fitOc,Oc,fits8,s8,fith0,h0,fitBias,zbias,bias,fitNoise,noise,fitPZShifts,pzshifts):
         #### set up parameters
@@ -149,7 +187,7 @@ class HSCAnalyze:
          'sigma_8':s8,
          'transfer_function':'eisenstein_hu',
          'matter_power_spectrum':'linear',
-         'has_rsd':False,'has_magnification':False}
+         'has_rsd':False,'has_magnification':None}
         if self.fitBias:
             dic.update({'hscgals_z_b':self.zbias,
                         'hscgals_b_b':[P.value('b_%2.1f'%z) for z in self.zbias]})
@@ -179,23 +217,34 @@ class HSCAnalyze:
     def logprob(self,p):
         return self.logprobs(p).sum()
     
-    def plotDataTheory(self):
+    def plotDataTheory(self, params=None, path2fig=None):
+
+        P = self.P.clone()
+        if params is not None:
+            P.setValues(params)
+
         fig = plt.figure()
         subplot=fig.add_subplot(111)
         clrcy='rgbycmk'
-        cls=self.predictTheory(self.P.values())
+        self.log.info('Best-fit parameters = {}.'.format(P.values()))
+        cls=self.predictTheory(P.values())
         for i,s in enumerate(self.saccs):
             #plt.subplot(3,3,i+1)
             s.plot_vector(subplot,plot_corr = 'auto',prediction=cls[i],clr=clrcy[i],lofsf=1.01**i,weightpow=0,
                           label=self.saccs[0].tracers[0].name, show_axislabels = True, show_legend=False)
             #plt.title(s.tracers[0].name)
+        if path2fig is not None:
+            plt.savefig(path2fig)
         plt.show()
 
     def minimize(self):
-        scipy.optimize.minimize(lambda x:-self.logprobs(x).sum(),
+
+        res = scipy.optimize.minimize(lambda x:-self.logprobs(x).sum(),
                                 self.P.values(),
                                 bounds=self.P.bounds(),
-                                method='TNC',options={'eps':1e-3})
+                                method='TNC',options={'eps':1e-3, 'disp':True})
+
+        return res
 
     def MCMCSample(self,fno='chain'):
         #Setup sampler
@@ -241,6 +290,10 @@ if __name__=="__main__":
         h=HSCAnalyze(sys.argv[1:], Oc=0.4,   bias=[1.36719745,  1.44648823,  1.58481978,  2.78524986,  2.48624793],
                  fitNoise=True, noise=[10.,          5.36774973,  4.14486325,  2.7542516])
         h.plotDataTheory()
+    # h=HSCAnalyze(sys.argv[1:], lmax='kmax', lmin='kmax', kmax=0.1, cosmo=None, \
+    #              zeff=np.array([0.57, 0.70, 0.92, 1.25]))
     h=HSCAnalyze(sys.argv[1:])
-    h.minimize()
+    res = h.minimize()
+    print(res.x)
+    h.plotDataTheory(params=res.x, path2fig='/Users/Andrina/Documents/WORK/HSC-LSS/plots/cls_data-theory_Ntomo=4_lmax=default.pdf')
     #h.MCMCSample()
