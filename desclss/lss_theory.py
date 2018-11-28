@@ -1,16 +1,28 @@
 import numpy as np
 import pyccl as ccl
-import sacc
+import logging
 from scipy.interpolate import interp1d
 
 class LSSTheory(object):
 
-    def __init__(self,sacc):
+    def __init__(self,sacc, log=logging.INFO):
         if  type(sacc)==str:
             sacc=sacc.SACC.loadFromHDF(sacc)
         self.s=sacc
         if self.s.binning==None :
             raise ValueError("Binning needed!")
+
+        if type(log)==logging.Logger:
+            self.log=log
+        else:
+            self.log = logging.getLogger('LSSTheory')
+            self.log.setLevel(log)
+            ch = logging.StreamHandler()
+            ch.setLevel(log)
+            formatter = logging.Formatter('%(levelname)s: %(message)s')
+            ch.setFormatter(formatter)
+            self.log.addHandler(ch)
+            print (self.log)
 
     def get_tracers(self,cosmo,dic_par) :
         tr_out=[]
@@ -18,18 +30,23 @@ class LSSTheory(object):
         has_magnification=dic_par.get('has_magnification',None)
         for (tr_index, thistracer) in enumerate(self.s.tracers) :
             if thistracer.type.__contains__('point'):
-                try:
+                if thistracer.exp_sample+'_b_bin' + str(tr_index) in dic_par:
+                    b_b = dic_par[thistracer.exp_sample+'_b_bin' + str(tr_index)]
+                    z_b_arr = thistracer.z
+                    b_b_arr = b_b*np.ones_like(z_b_arr)
+                elif thistracer.exp_sample+'_z_b' in dic_par:
                     z_b_arr=dic_par[thistracer.exp_sample+'_z_b']
-                    b_b_arr=dic_par[thistracer.exp_sample+'_b_b']
-                except:
+                    b_b_arr = dic_par[thistracer.exp_sample+'_b_b']
+                    bf=interp1d(z_b_arr,b_b_arr,kind='nearest') #Assuming linear interpolation. Decide on extrapolation.
+                    b_arr=bf(thistracer.z) #Assuming that tracers have this attribute
+                else:
                     raise ValueError("bias needed for each tracer")
 
                 if 'zshift_bin' + str(tr_index) in dic_par:
                     zbins = thistracer.z + dic_par['zshift_bin' + str(tr_index)]
                 else:
-                    zbins = thistracer.z                
-                bf=interp1d(z_b_arr,b_b_arr,kind='nearest') #Assuming linear interpolation. Decide on extrapolation.
-                b_arr=bf(thistracer.z) #Assuming that tracers have this attribute
+                    zbins = thistracer.z
+
                 tr_out.append(ccl.NumberCountsTracer(cosmo, has_rsd=dic_par['has_rsd'], dndz=(zbins, thistracer.Nz), \
                                                      bias=(z_b_arr, b_b_arr), mag_bias=dic_par['has_magnification']))
             else :
@@ -65,6 +82,8 @@ class LSSTheory(object):
                                 transfer_function=dic_par['transfer_function'],
                                 matter_power_spectrum=dic_par['matter_power_spectrum'])
 
+        self.log.info('CCL called with cosmology = {}.'.format(cosmo))
+
         return cosmo
 
     def get_prediction(self,dic_par) :
@@ -77,4 +96,14 @@ class LSSTheory(object):
                 cls+=dic_par['Pw_bin%i'%i1]
             theory_out[ndx]=cls
             
-        return theory_out    
+        return theory_out
+
+    def get_noSN_prediction(self,dic_par) :
+        theory_out=np.zeros((self.s.size(),))
+        cosmo=self.get_cosmo(dic_par)
+        tr=self.get_tracers(cosmo,dic_par)
+        for i1,i2,_,ells,ndx in self.s.sortTracers() :
+            cls=ccl.angular_cl(cosmo,tr[i1],tr[i2],ells)
+            theory_out[ndx]=cls
+
+        return theory_out
