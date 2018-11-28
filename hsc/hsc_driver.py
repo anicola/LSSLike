@@ -54,9 +54,23 @@ class HSCAnalyze:
         self.Ntomo=len(self.saccs[0].tracers) ## number of tomo bins
         self.log.info ("Ntomo bins: %i"%self.Ntomo)
 
+        if not (type(noise)==list):
+            if noise is not None:
+                self.log.info('Scalar shot noise parameter provided. Setting constant for all tomographic bins.')
+                self.noise=[noise]*self.Ntomo
+            else:
+                self.log.info('No shot noise parameter provided. Determining from sacc.')
+                self.noise = [(1./np.mean(t.extra_cols['ndens']))*1e8 for t in self.saccs[0].tracers]
+                self.log.info('Shot noise array = {}.'.format(self.noise))
+        else:
+            self.noise = noise
+
+        assert len(self.noise) == len(self.saccs)*self.Ntomo, 'Noise list shape does not match total number of tracers.'
+        assert len(pzshifts) == self.Ntomo, 'pzshifts array shape does not match number of tomographic bins.'
+
         self.fixnames()
         self.cutLranges(lmin, lmax, kmax, zeff, cosmo)
-        self.setParametes(fitOc,Oc,fits8,s8,fith0,h0,fitBias,BiasMod,zbias,bias,fitNoise,noise,fitPZShifts,pzshifts)
+        self.setParametes(fitOc,Oc,fits8,s8,fith0,h0,fitBias,BiasMod,zbias,bias,fitNoise,self.noise,fitPZShifts,pzshifts)
             
         self.lts=[LSSTheory(s) for s in self.saccs]
         self.lks=[LSSLikelihood(s) for s in self.saccs]
@@ -167,8 +181,6 @@ class HSCAnalyze:
                 raise ValueError("bias needed")
 
         if self.fitNoise:
-            if not (type(noise)==list):
-                noise=[noise]*self.Ntomo
             for i in range(self.Ntomo):
                 self.P.addParam('Pw_%i'%i,noise[i],min=0.0,max=10)  ## in units of 1e-8
 
@@ -215,7 +227,14 @@ class HSCAnalyze:
             for i in range(self.Ntomo):
                 dic['zshift_bin%i'%i]=P.value('s_%i'%i)
         print(dic)
-        cls=[lt.get_prediction(dic) for lt in self.lts]
+
+        cls=[0 for lt in self.lts]
+
+        for i, lt in enumerate(self.lts):
+            for ii in range(self.Ntomo):
+                dic['Pw_bin%i'%ii]=self.noise[ii]*1e-8
+            cls[i] = lt.get_prediction(dic)
+
         return cls
 
     def predictNoSNTheory(self,p):
@@ -284,10 +303,10 @@ class HSCAnalyze:
 
         for i,s in enumerate(self.saccs):
             #plt.subplot(3,3,i+1)
-            s.plot_vector(subplot,plot_corr = 'auto',prediction=cls[i],clr=clrcy[i],lofsf=1.01**i,weightpow=0,
-                          label=self.saccs[0].tracers[0].name, show_axislabels = True, show_legend=False)
-            s.plot_vector(subplot,plot_corr = 'auto',prediction=cls_sn_rem[i],clr=clrcy[2],lofsf=1.01**i,weightpow=0,
-                          label=self.saccs[0].tracers[0].name, show_axislabels = True, show_legend=False)
+            self.plot_vector(s, subplot,plot_corr = 'auto',prediction=cls[i],clr=clrcy[i],lofsf=1.01**i,weightpow=0,
+                          label=self.saccs[0].tracers[0].name, show_axislabels = True, show_legend=True, linestyle_pred=':')
+            self.plot_vector(s, subplot,plot_corr = 'auto',prediction=cls_sn_rem[i],clr=clrcy[2],lofsf=1.01**i,weightpow=0,
+                          label=self.saccs[0].tracers[0].name, show_axislabels = True, show_legend=False, linestyle_pred='--')
             #plt.title(s.tracers[0].name)
         if path2fig is not None:
             plt.savefig(path2fig)
@@ -295,7 +314,7 @@ class HSCAnalyze:
 
 
     def plot_vector (self, sacc, subplot = None, plot_corr='all', weightpow = 2, set_logx=True, set_logy=True,
-                    show_axislabels = False, show_legend=True, prediction=None, clr='r', lofsf=1.0, label=None):
+                    show_axislabels = False, show_legend=True, prediction=None, clr='r', lofsf=1.0, label=None, linestyle_pred=':'):
         """
         Plots the mean vector associated to the different tracers
         in the sacc file. The tracer correlations to plot can be selected by
@@ -366,9 +385,11 @@ class HSCAnalyze:
 
             subplot.plot(ell,C_ell * np.power(ell,weightpow),color=colors[i])
             if errs is not None:
-                subplot.errorbar(ell,C_ell * np.power(ell,weightpow),yerr=errs[tbin]*np.power(ell,weightpow), linestyle = 'None',color=colors[i])
-            subplot.plot(ell,C_ell * np.power(ell,weightpow),linestyle='None', marker='o', markeredgecolor = colors[i], color = colors[i],
+                subplot.errorbar(ell,C_ell * np.power(ell,weightpow),yerr=errs[tbin]*np.power(ell,weightpow), linestyle='None',color=colors[i])
+            subplot.plot(ell,C_ell * np.power(ell,weightpow),linestyle='None', marker='o', markeredgecolor=colors[i], color=colors[i],
                 label= sacc.tracers[0].exp_sample+' $C_{%i%i}$' %(tr_i,tr_j))
+            if prediction is not None:
+                subplot.plot(ell,prediction[tbin] * np.power(ell,weightpow), linestyle=linestyle_pred, color=colors[i])
             i += 1
 
         if set_logx:
@@ -407,7 +428,7 @@ class HSCAnalyze:
         res = scipy.optimize.minimize(lambda x:-self.logprobs(x).sum(),
                                 self.P.values(),
                                 bounds=self.P.bounds(),
-                                method='TNC',options={'eps':1e-3, 'disp':True})
+                                method='TNC',options={'eps':1e-3, 'disp':True, 'maxiter': 500})
 
         return res
 
@@ -458,12 +479,15 @@ if __name__=="__main__":
         h.plotDataTheory()
     #
     # h=HSCAnalyze(sys.argv[1:], lmax='kmax', lmin='kmax', kmax=0.15, cosmo=None, BiasMod='const', bias=[0.7,1.5,1.8,2.0], \
-    #              zeff=np.array([0.57, 0.70, 0.92, 1.25]))
-    h=HSCAnalyze(sys.argv[1:], BiasMod='const', bias=[0.7,1.5,1.8,2.0])
-    # res = h.minimize()
-    # h.log.info('Optimizer message {}.'.format(res.message))
-    # h.log.info('Minimum found at {}.'.format(res.x))
-    # h.log.info('No of iterations {}.'.format(res.nit))
-    # h.plotDataTheory(params=res.x, path2fig='/Users/Andrina/Documents/WORK/HSC-LSS/plots/spectra_eab_best_pzb4bins_bpw200_covdata_nocont/cls_data-theory+SN-rem_mPk=halofit_bz=const_Ntomo=4_kmax=0.15.pdf')
-    h.plotData(path2fig='/Users/Andrina/Documents/WORK/HSC-LSS/plots/spectra_eab_best_pzb4bins_bpw200_covdata_nocont/cls_data_Ntomo=4_lmax=default.pdf')
+    #              zeff=np.array([0.57, 0.70, 0.92, 1.25]), fitNoise=False, noise=None)
+    h=HSCAnalyze(sys.argv[1:], lmax='kmax', lmin='kmax', kmax=0.1, cosmo=None, \
+                 zeff=np.array([0.57, 0.70, 0.92, 1.25]), fitNoise=False, noise=None)
+    # h=HSCAnalyze(sys.argv[1:], BiasMod='const', bias=[0.7,1.5,1.8,2.0], fitNoise=False, noise=None)
+    # h=HSCAnalyze(sys.argv[1:])
+    res = h.minimize()
+    h.log.info('Optimizer message {}.'.format(res.message))
+    h.log.info('Minimum found at {}.'.format(res.x))
+    h.log.info('No of iterations {}.'.format(res.nit))
+    h.plotDataTheory(params=res.x, path2fig='/Users/Andrina/Documents/WORK/HSC-LSS/plots/spectra_eab_best_pzb4bins_bpw200_covdata_nocont/cls_data-theory+SN-rem_mPk=halofit_n_sn=const_Ntomo=4_kmax=0.1.pdf')
+    # h.plotData(path2fig='/Users/Andrina/Documents/WORK/HSC-LSS/plots/spectra_eab_best_pzb4bins_bpw200_covdata_nocont/cls_data_Ntomo=4_lmax=default.pdf')
     #h.MCMCSample()
