@@ -244,8 +244,8 @@ class HSCAnalyze:
 
         for i, lt in enumerate(self.lts):
             if self.fitNoise:
-                for i in range(self.Ntomo):
-                    dic['Pw_bin%i'%i]=P.value('Pw_%i'%i)*1e-8
+                for ii in range(self.Ntomo):
+                    dic['Pw_bin%i'%ii]=P.value('Pw_%i'%ii)*1e-8
             else:
                 for ii in range(self.Ntomo):
                     dic['Pw_bin%i'%ii]=self.noise[ii]*1e-8
@@ -302,14 +302,21 @@ class HSCAnalyze:
         cls=self.predictTheory(p)
         #print (cls)
         likes=np.array([lk(cl) for lk,cl in zip(self.lks,cls)])
-        dof=np.array([len(cl) for cl in cls])
-        self.log.debug("parameters: "+str(p)+" -> chi2= "+str(-2*likes.sum())+" dof= "+str(dof.sum()))
+        # dof = np.array([len(cl) for cl in cls])
+        self.chisq_cur = -2*likes.sum()
+        self.log.debug("parameters: "+str(p)+" -> chi2= "+str(self.chisq_cur)+" dof = ncls - nparam: "+str(self.dofs))
         return likes
 
     def logprob(self,p):
         return self.logprobs(p).sum()
     
     def plotDataTheory(self, params=None, path2fig=None):
+        """
+        Plots the theory predictions with and without shot noise.
+        :param params:
+        :param path2fig:
+        :return:
+        """
 
         P = self.P.clone()
         if params is not None:
@@ -328,6 +335,11 @@ class HSCAnalyze:
                           label=self.saccs[0].tracers[0].name, show_axislabels = True, show_legend=True, linestyle_pred=':')
             self.plot_vector(s, subplot,plot_corr = 'auto',prediction=cls_sn_rem[i],weightpow=0,
                           label=self.saccs[0].tracers[0].name, show_axislabels = True, show_legend=False, linestyle_pred='--')
+            try:
+                subplot.text(0.05, 0.15, r'$\chi^2/ \mathrm{{dof}} = {:.2f}$'.format(self.chisq_cur/self.dofs)+'\n'+r'$\mathrm{{dof}} = {}$'.format(self.dofs), \
+                         transform=subplot.transAxes, fontsize=14, verticalalignment='top')
+            except:
+                self.log.warning('Not writing chi2 in plot. Chi2 not set.')
             #plt.title(s.tracers[0].name)
         if path2fig is not None:
             plt.savefig(path2fig)
@@ -497,35 +509,58 @@ class HSCAnalyze:
 
 if __name__=="__main__":
 
-    # parser = argparse.ArgumentParser(description='Calculate cls for ACT HSC.')
-    #
-    # parser.add_argument('--saccfiles', dest='saccfiles', type=str, help='Path to output.', required=True)
-    #Simulation to use
-    if len(sys.argv)<2 :
-        print ("Usage ./hsc_driver.py saccfiles")
-        exit(1)
+    parser = argparse.ArgumentParser(description='Calculate cls for ACT HSC.')
 
-    fit = True
-    if fit ==False:
-        h=HSCAnalyze(sys.argv[1:], Oc=0.4, bias=[0.81877956,  1.09962214,  1.44457603,  1.65513987,  2.61238931],
-                 fitNoise=False, noise=None)
+    parser.add_argument('--path2fig', dest='path2fig', type=str, help='Path to figure.', required=False)
+    parser.add_argument('--BiasMod', dest='BiasMod', type=str, help='Tag denoting which bias model to us. BiasMod = {bz, const}.', required=False, default='bz')
+    parser.add_argument('--fitNoise', dest='fitNoise', type=int, help='Tag denoting if to fit shot noise.', required=False, default=1)
+    parser.add_argument('--lmin', dest='lmin', type=str, help='Tag specifying how lmin is determined. lmin = {auto, kmax}.', required=False, default='auto')
+    parser.add_argument('--lmax', dest='lmax', type=str, help='Tag specifying how lmax is determined. lmax = {auto, kmax}.', required=False, default='auto')
+    parser.add_argument('--kmax', dest='kmax', type=float, help='If lmax=kmax, this sets kmax to use.', required=False)
+    parser.add_argument('--fitdata', dest='fitdata', type=int, help='Tag denoting if parameters are fit to data or only a plot is generated.', required=True)
+    parser.add_argument('--saccfiles', dest='saccfiles', nargs='+', help='Path to saccfiles.', required=True)
 
-        # h.plotDataTheory(path2fig='/Users/Andrina/Documents/WORK/HSC-LSS/plots/spectra_eab_best_pzb4bins_bpw200_covdata_nocont/cls_data-theory+SN-rem_mPk=halofit_n_sn=const_Ntomo=4_kmax=0.15_test-fit.pdf')
-        h.plotDataTheory()
+    args = parser.parse_args()
+
+    if args.lmax == 'kmax':
+        zeff = np.array([0.57, 0.70, 0.92, 1.25])
+    else:
+        zeff = None
+
+    if args.BiasMod == 'bz':
+        bias = np.array([0.7, 1.5, 1.8, 2.0, 2.5])
+    elif args.BiasMod == 'const':
+        bias = np.array([0.7, 1.5, 1.8, 2.0])
+    else:
+        raise NotImplementedError('Only BiasMod = bz or const implemented.')
+
+    if args.fitdata == 0:
+
+        h = HSCAnalyze(args.saccfiles, Oc=0.3479673, bias=bias,
+                 fitNoise=args.fitNoise, noise=None, BiasMod=args.BiasMod)
+
+        h.plotDataTheory(path2fig=args.path2fig)
+        # h.plotDataTheory()
 
     else:
-        # h=HSCAnalyze(sys.argv[1:], lmax='kmax', lmin='kmax', kmax=0.15, cosmo=None, BiasMod='const', bias=[0.7,1.5,1.8,2.0], \
+
+        h = HSCAnalyze(args.saccfiles, lmax=args.lmax, lmin=args.lmin, kmax=args.kmax, cosmo=None, BiasMod=args.BiasMod,
+                       bias=bias, zeff=zeff, fitNoise=args.fitNoise)
+        # h=HSCAnalyze(sys.argv[1:], lmax='kmax', lmin='kmax', kmax=0.15, cosmo=None, \
         #              zeff=np.array([0.57, 0.70, 0.92, 1.25]), fitNoise=False, noise=None)
-        h=HSCAnalyze(sys.argv[1:], lmax='kmax', lmin='kmax', kmax=0.15, cosmo=None, \
-                     zeff=np.array([0.57, 0.70, 0.92, 1.25]), fitNoise=False, noise=None)
         # h=HSCAnalyze(sys.argv[1:], BiasMod='const', bias=[0.7,1.5,1.8,2.0], fitNoise=False, noise=None)
         # h=HSCAnalyze(sys.argv[1:])
         res = h.minimize()
         h.log.info('Optimizer message {}.'.format(res.message))
         h.log.info('Minimum found at {}.'.format(res.x))
         h.log.info('No of iterations {}.'.format(res.nit))
-        # h.plotDataTheory(params=res.x, path2fig='/Users/Andrina/Documents/WORK/HSC-LSS/plots/spectra_eab_best_pzb4bins_bpw200_covdata_nocont/cls_data-theory+SN-rem_mPk=halofit_n_sn=const_Ntomo=4_kmax=0.1.pdf')
-        h.plotDataTheory(params=res.x)
+        h.plotDataTheory(params=res.x, path2fig=args.path2fig)
+        # h.plotDataTheory(params=res.x, path2fig='/Users/Andrina/Documents/WORK/HSC-LSS/plots/spectra_eab_best_pzb4bins_bpw200_covdata_cont_dpt_dst_str_ams_fwh_ssk_ssc/cls_data-theory+SN-rem_mPk=halofit_n_sn=const_bz=const_Ntomo=4_kmax=0.15_test-fit.pdf')
+        # h.plotDataTheory(params=res.x)
 
         # h.plotData(path2fig='/Users/Andrina/Documents/WORK/HSC-LSS/plots/spectra_eab_best_pzb4bins_bpw200_covdata_nocont/cls_data_Ntomo=4_lmax=default.pdf')
         #h.MCMCSample()
+
+
+
+
