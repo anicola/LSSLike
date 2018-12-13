@@ -122,7 +122,7 @@ class HODProfile(object) :
         """
         a=1./(1+z)
         r200=r_Delta(cosmo,m,a,self.delta_mass,is_matter=self.is_delta_matter)*(1+z)
-        c200=concentration_duffy(m,a,is_Dmatter=self.is_delta_matter)
+        c200=concentration_duffy(m,a,is_Dmatter=self.is_delta_matter,is_D500=(self.delta_mass==500))
         norm=1./(np.log(1+c200)-c200/(1+c200))
         xarr=k[:,None]*r200[None,:]/c200[None,:]
         opcx=xarr*(1+c200[None,:])
