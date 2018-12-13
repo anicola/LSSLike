@@ -514,6 +514,7 @@ if __name__=="__main__":
     parser.add_argument('--path2fig', dest='path2fig', type=str, help='Path to figure.', required=False)
     parser.add_argument('--BiasMod', dest='BiasMod', type=str, help='Tag denoting which bias model to us. BiasMod = {bz, const}.', required=False, default='bz')
     parser.add_argument('--fitNoise', dest='fitNoise', type=int, help='Tag denoting if to fit shot noise.', required=False, default=1)
+    parser.add_argument('--noiseFromData', dest='noiseFromData', type=int, help='Tag denoting if to determine the shot noise from data.', required=False, default=0)
     parser.add_argument('--lmin', dest='lmin', type=str, help='Tag specifying how lmin is determined. lmin = {auto, kmax}.', required=False, default='auto')
     parser.add_argument('--lmax', dest='lmax', type=str, help='Tag specifying how lmax is determined. lmax = {auto, kmax}.', required=False, default='auto')
     parser.add_argument('--kmax', dest='kmax', type=float, help='If lmax=kmax, this sets kmax to use.', required=False)
@@ -533,19 +534,24 @@ if __name__=="__main__":
         bias = np.array([0.7, 1.5, 1.8, 2.0])
     else:
         raise NotImplementedError('Only BiasMod = bz or const implemented.')
-
     if args.fitdata == 0:
 
-        h = HSCAnalyze(args.saccfiles, Oc=0.3479673, bias=bias,
-                 fitNoise=args.fitNoise, noise=None, BiasMod=args.BiasMod)
+        # h = HSCAnalyze(args.saccfiles, Oc=0.3479673, bias=bias,
+        #          fitNoise=args.fitNoise, noise=None, BiasMod=args.BiasMod)
+        h = HSCAnalyze(args.saccfiles, Oc=0.25, bias=[ 1.12876296,  1.03349685,  1.44077085,  0.71040461,  3.42302814],
+                    fitNoise=args.fitNoise, noise=None, BiasMod=args.BiasMod)
 
         h.plotDataTheory(path2fig=args.path2fig)
         # h.plotDataTheory()
 
     else:
 
-        h = HSCAnalyze(args.saccfiles, lmax=args.lmax, lmin=args.lmin, kmax=args.kmax, cosmo=None, BiasMod=args.BiasMod,
-                       bias=bias, zeff=zeff, fitNoise=args.fitNoise)
+        if args.fitNoise == 0 and args.noiseFromData == 1:
+            h = HSCAnalyze(args.saccfiles, fitOc=False, lmax=args.lmax, lmin=args.lmin, kmax=args.kmax, cosmo=None, BiasMod=args.BiasMod,
+                           bias=bias, zeff=zeff, fitNoise=args.fitNoise, noise=None)
+        else:
+            h = HSCAnalyze(args.saccfiles, lmax=args.lmax, lmin=args.lmin, kmax=args.kmax, cosmo=None, BiasMod=args.BiasMod,
+                           bias=bias, zeff=zeff, fitNoise=args.fitNoise)
         # h=HSCAnalyze(sys.argv[1:], lmax='kmax', lmin='kmax', kmax=0.15, cosmo=None, \
         #              zeff=np.array([0.57, 0.70, 0.92, 1.25]), fitNoise=False, noise=None)
         # h=HSCAnalyze(sys.argv[1:], BiasMod='const', bias=[0.7,1.5,1.8,2.0], fitNoise=False, noise=None)
