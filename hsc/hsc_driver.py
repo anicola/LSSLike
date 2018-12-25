@@ -3,6 +3,8 @@ import sys
 import numpy as np
 import logging
 import scipy.optimize
+import matplotlib
+matplotlib.use('agg')
 import matplotlib.pyplot as plt
 import pyccl as ccl
 import argparse
@@ -12,6 +14,11 @@ from desclss import LSSTheory,LSSLikelihood
 
 import emcee as mc
 from ParamVec import ParamVec
+
+HOD_PARAM_KEYS = ['lmmin_0', 'lmmin_alpha', 'sigm_0', 'sigm_alpha', 'm0_0', 'm0_alpha', 'm1_0', 'm1_alpha', \
+                  'alpha_0', 'alpha_alpha', 'fc_0', 'fc_alpha']
+HOD_PARAM_MINS = np.array([5., -2., 0., -2., 1e11, -2., 1e11, -2., 0., -2., 0., -2.])
+HOD_PARAM_MAXS = np.array([15., 2., 1., 2., 1e13, 2., 1e13, 2., 2., 2., 1., 2.])
 
 class HSCAnalyze:
 
@@ -27,7 +34,10 @@ class HSCAnalyze:
                  pzshifts=[0,0,0,0],
                  join_saccs=True,   ## If true, Cinverse add all saccs into one
                  cull_cross=True,  ## If true, use just auto
-                 log=logging.DEBUG):
+                 log=logging.DEBUG,
+                 hod=0,
+                 fitHOD=0,
+                 hodpars=None):
 
         if type(log)==logging.Logger:
             self.log=log
@@ -70,9 +80,10 @@ class HSCAnalyze:
 
         self.fixnames()
         self.cutLranges(lmin, lmax, kmax, zeff, cosmo)
-        self.setParametes(fitOc,Oc,fits8,s8,fith0,h0,fitBias,BiasMod,zbias,bias,fitNoise,noise,fitPZShifts,pzshifts)
+        self.setParametes(fitOc,Oc,fits8,s8,fith0,h0,fitBias,BiasMod,zbias,bias,fitNoise,noise,fitPZShifts,pzshifts, \
+                          hod, fitHOD, hodpars)
             
-        self.lts=[LSSTheory(s) for s in self.saccs]
+        self.lts=[LSSTheory(s, hod=hod, fitHOD=fitHOD, hodpars=hodpars) for s in self.saccs]
         self.lks=[LSSLikelihood(s) for s in self.saccs]
 
         self.dofs = self.ncls - len(self.P)
@@ -152,7 +163,8 @@ class HSCAnalyze:
 
         return lmax
 
-    def setParametes(self,fitOc,Oc,fits8,s8,fith0,h0,fitBias,BiasMod,zbias,bias,fitNoise,noise,fitPZShifts,pzshifts):
+    def setParametes(self,fitOc,Oc,fits8,s8,fith0,h0,fitBias,BiasMod,zbias,bias,fitNoise,noise,fitPZShifts,pzshifts, hod, \
+                     fitHOD, hodpars):
         #### set up parameters
         self.fitOc=fitOc
         self.Oc=Oc
@@ -168,6 +180,14 @@ class HSCAnalyze:
         self.noise=noise
         self.fitPZShifts=fitPZShifts
         self.pzshifts=pzshifts
+        # HOD
+        self.hod = hod
+        self.fitHOD = fitHOD
+        if self.hod == 1:
+            self.log.info('hod = {}. Computing theory predictions with HOD.'.format(self.hod))
+            self.hodpars = {}
+            for i, key in enumerate(HOD_PARAM_KEYS):
+                self.hodpars[key] = hodpars[i]
             
         self.P=ParamVec()
         if self.fitOc:
@@ -185,7 +205,7 @@ class HSCAnalyze:
                 for i, b in enumerate(self.bias):
                     self.P.addParam('b_bin%i'%i, b, min=0.5, max=5.)
             else:
-                raise ValueError("Intial value for bias needed.")
+                raise ValueError("Initial value for bias needed.")
 
         if self.fitNoise:
             for i in range(self.Ntomo):
@@ -194,10 +214,14 @@ class HSCAnalyze:
         if self.fitPZShifts:
             for i in range(self.Ntomo):
                 self.P.addParam('s_%i'%i,0.0,min=-0.5,max=+0.5)
-        self.log.info ("Parameters: "+str(self.P._names))
             
+        if self.fitHOD == 1:
+            self.log.info('Fitting HOD parameters.')
+            for i, key in enumerate(HOD_PARAM_KEYS):
+                self.P.addParam('{}'.format(key), hodpars[i], min=HOD_PARAM_MINS[i], max=HOD_PARAM_MAXS[i])
 
-    
+        self.log.info ("Parameters: "+str(self.P._names))
+
 
     def predictTheory(self,p):
         P=self.P.clone()
@@ -239,6 +263,14 @@ class HSCAnalyze:
         if self.fitPZShifts:
             for i in range(self.Ntomo):
                 dic['zshift_bin%i'%i]=P.value('s_%i'%i)
+
+        if self.hod == 1:
+            if self.fitHOD == 1:
+                for i, key in enumerate(HOD_PARAM_KEYS):
+                    dic['{}'.format(key)]= P.value('{}'.format(key))
+            else:
+                for i, key in enumerate(HOD_PARAM_KEYS):
+                    dic['{}'.format(key)]= self.hodpars['{}'.format(key)]
 
         cls=[0 for lt in self.lts]
 
@@ -356,9 +388,6 @@ class HSCAnalyze:
         passng 'cross', and both by passing 'all'.  The C_ell's will be
         weighted by a factor of ell^{weightpow}.
         """
-        import matplotlib.pyplot as plt
-        import matplotlib
-
 
         if subplot is None:
             fig = plt.figure()
@@ -518,6 +547,8 @@ if __name__=="__main__":
     parser.add_argument('--lmax', dest='lmax', type=str, help='Tag specifying how lmax is determined. lmax = {auto, kmax}.', required=False, default='auto')
     parser.add_argument('--kmax', dest='kmax', type=float, help='If lmax=kmax, this sets kmax to use.', required=False)
     parser.add_argument('--fitdata', dest='fitdata', type=int, help='Tag denoting if parameters are fit to data or only a plot is generated.', required=True)
+    parser.add_argument('--hod', dest='hod', type=int, help='Tag denoting if to use HOD in theory predictions.', required=False, default=0)
+    parser.add_argument('--fitHOD', dest='fitHOD', type=int, help='Tag denoting if to fit for HOD parameters.', required=False, default=0)
     parser.add_argument('--saccfiles', dest='saccfiles', nargs='+', help='Path to saccfiles.', required=True)
 
     args = parser.parse_args()
@@ -531,12 +562,16 @@ if __name__=="__main__":
         bias = np.array([0.7, 1.5, 1.8, 2.0, 2.5])
     elif args.BiasMod == 'const':
         bias = np.array([0.7, 1.5, 1.8, 2.0])
+        bias = np.array([1., 1., 1., 1.])
     else:
         raise NotImplementedError('Only BiasMod = bz or const implemented.')
 
+    if args.hod == 1:
+        hodpars = np.array([10., 0., 0.31, 0., 1e12, 0.3, 3.5e12, 0.2, 0.8, 0.3, 1., -0.1])
+
     if args.fitdata == 0:
 
-        h = HSCAnalyze(args.saccfiles, Oc=0.3479673, bias=bias,
+        h = HSCAnalyze(args.saccfiles, Oc=0.4, bias=bias,
                  fitNoise=args.fitNoise, noise=None, BiasMod=args.BiasMod)
 
         h.plotDataTheory(path2fig=args.path2fig)
@@ -545,7 +580,7 @@ if __name__=="__main__":
     else:
 
         h = HSCAnalyze(args.saccfiles, lmax=args.lmax, lmin=args.lmin, kmax=args.kmax, cosmo=None, BiasMod=args.BiasMod,
-                       bias=bias, zeff=zeff, fitNoise=args.fitNoise)
+                       bias=bias, zeff=zeff, fitNoise=args.fitNoise, hod=args.hod, fitHOD=args.fitHOD, hodpars=hodpars)
         # h=HSCAnalyze(sys.argv[1:], lmax='kmax', lmin='kmax', kmax=0.15, cosmo=None, \
         #              zeff=np.array([0.57, 0.70, 0.92, 1.25]), fitNoise=False, noise=None)
         # h=HSCAnalyze(sys.argv[1:], BiasMod='const', bias=[0.7,1.5,1.8,2.0], fitNoise=False, noise=None)

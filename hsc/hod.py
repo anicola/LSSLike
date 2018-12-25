@@ -1,9 +1,6 @@
 import numpy as np
 import pyccl as ccl
 from scipy.special import erf,sici
-import matplotlib.pyplot as plt
-from matplotlib.pyplot import cm
-
 
 def concentration_duffy(halo_mass,a,is_Dmatter=False,is_D500=False) :
     """
