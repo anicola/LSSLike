@@ -8,7 +8,6 @@ matplotlib.use('agg')
 import matplotlib.pyplot as plt
 import pyccl as ccl
 import argparse
-from timeit import default_timer as timer
 
 import sacc
 from desclss import LSSTheory,LSSLikelihood
@@ -332,13 +331,9 @@ class HSCAnalyze:
     
     #Define log(p). This is just a wrapper around the LSSLikelihood lk
     def logprobs(self,p):
-        start = timer()
         cls=self.predictTheory(p)
         #print (cls)
         likes=np.array([lk(cl) for lk,cl in zip(self.lks,cls)])
-
-        end = timer()
-        print(end - start)
         # dof = np.array([len(cl) for cl in cls])
         self.chisq_cur = -2*likes.sum()
         self.log.debug("parameters: "+str(p)+" -> chi2= "+str(self.chisq_cur)+" dof = ncls - nparam: "+str(self.dofs))
