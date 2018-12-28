@@ -8,6 +8,7 @@ matplotlib.use('agg')
 import matplotlib.pyplot as plt
 import pyccl as ccl
 import argparse
+from timeit import default_timer as timer
 
 import sacc
 from desclss import LSSTheory,LSSLikelihood
@@ -237,7 +238,7 @@ class HSCAnalyze:
          'h0':h0,
          'n_s':0.96,
          'sigma_8':s8,
-         'transfer_function':'eisenstein_hu',
+         'transfer_function':'boltzmann_class',
          'matter_power_spectrum':'halofit',
          'has_rsd':False,'has_magnification':None}
 
@@ -298,7 +299,7 @@ class HSCAnalyze:
          'h0':h0,
          'n_s':0.96,
          'sigma_8':s8,
-         'transfer_function':'eisenstein_hu',
+         'transfer_function':'boltzmann_class',
          'matter_power_spectrum':'halofit',
          'has_rsd':False,'has_magnification':None}
 
@@ -331,9 +332,13 @@ class HSCAnalyze:
     
     #Define log(p). This is just a wrapper around the LSSLikelihood lk
     def logprobs(self,p):
+        start = timer()
         cls=self.predictTheory(p)
         #print (cls)
         likes=np.array([lk(cl) for lk,cl in zip(self.lks,cls)])
+
+        end = timer()
+        print(end - start)
         # dof = np.array([len(cl) for cl in cls])
         self.chisq_cur = -2*likes.sum()
         self.log.debug("parameters: "+str(p)+" -> chi2= "+str(self.chisq_cur)+" dof = ncls - nparam: "+str(self.dofs))
@@ -538,11 +543,12 @@ class HSCAnalyze:
 
 if __name__=="__main__":
 
-    parser = argparse.ArgumentParser(description='Calculate cls for ACT HSC.')
+    parser = argparse.ArgumentParser(description='Calculate HSC clustering cls.')
 
     parser.add_argument('--path2fig', dest='path2fig', type=str, help='Path to figure.', required=False)
     parser.add_argument('--BiasMod', dest='BiasMod', type=str, help='Tag denoting which bias model to us. BiasMod = {bz, const}.', required=False, default='bz')
     parser.add_argument('--fitNoise', dest='fitNoise', type=int, help='Tag denoting if to fit shot noise.', required=False, default=1)
+    parser.add_argument('--noiseFromData', dest='noiseFromData', type=int, help='Tag denoting if to determine the shot noise from data.', required=False, default=0)
     parser.add_argument('--lmin', dest='lmin', type=str, help='Tag specifying how lmin is determined. lmin = {auto, kmax}.', required=False, default='auto')
     parser.add_argument('--lmax', dest='lmax', type=str, help='Tag specifying how lmax is determined. lmax = {auto, kmax}.', required=False, default='auto')
     parser.add_argument('--kmax', dest='kmax', type=float, help='If lmax=kmax, this sets kmax to use.', required=False)
@@ -562,16 +568,18 @@ if __name__=="__main__":
         bias = np.array([0.7, 1.5, 1.8, 2.0, 2.5])
     elif args.BiasMod == 'const':
         bias = np.array([0.7, 1.5, 1.8, 2.0])
-        bias = np.array([1., 1., 1., 1.])
+        # bias = np.array([1., 1., 1., 1.])
     else:
         raise NotImplementedError('Only BiasMod = bz or const implemented.')
 
     if args.hod == 1:
         hodpars = np.array([10., 0., 0.31, 0., 1e12, 0.3, 3.5e12, 0.2, 0.8, 0.3, 1., -0.1])
+    else:
+        hodpars=None
 
     if args.fitdata == 0:
-
-        h = HSCAnalyze(args.saccfiles, Oc=0.4, bias=bias,
+        bias = np.array([0.9615482,  1.16666415, 1.34743442, 1.50652355])
+        h = HSCAnalyze(args.saccfiles, Oc=0.258, bias=bias,
                  fitNoise=args.fitNoise, noise=None, BiasMod=args.BiasMod)
 
         h.plotDataTheory(path2fig=args.path2fig)
@@ -579,8 +587,13 @@ if __name__=="__main__":
 
     else:
 
-        h = HSCAnalyze(args.saccfiles, lmax=args.lmax, lmin=args.lmin, kmax=args.kmax, cosmo=None, BiasMod=args.BiasMod,
-                       bias=bias, zeff=zeff, fitNoise=args.fitNoise, hod=args.hod, fitHOD=args.fitHOD, hodpars=hodpars)
+        if args.fitNoise == 0 and args.noiseFromData == 1:
+            h = HSCAnalyze(args.saccfiles, lmax=args.lmax, lmin=args.lmin, kmax=args.kmax, cosmo=None, BiasMod=args.BiasMod,
+                           bias=bias, zeff=zeff, fitNoise=args.fitNoise, noise=None, hod=args.hod, fitHOD=args.fitHOD,
+                           hodpars=hodpars)
+        else:
+            h = HSCAnalyze(args.saccfiles, lmax=args.lmax, lmin=args.lmin, kmax=args.kmax, cosmo=None, BiasMod=args.BiasMod,
+                           bias=bias, zeff=zeff, fitNoise=args.fitNoise, hod=args.hod, fitHOD=args.fitHOD, hodpars=hodpars)
         # h=HSCAnalyze(sys.argv[1:], lmax='kmax', lmin='kmax', kmax=0.15, cosmo=None, \
         #              zeff=np.array([0.57, 0.70, 0.92, 1.25]), fitNoise=False, noise=None)
         # h=HSCAnalyze(sys.argv[1:], BiasMod='const', bias=[0.7,1.5,1.8,2.0], fitNoise=False, noise=None)

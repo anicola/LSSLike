@@ -1,7 +1,7 @@
 import numpy as np
 import pyccl as ccl
 import logging
-logging.basicConfig(level=logging.INFO)
+# logging.basicConfig(level=logging.INFO)
 
 class HODParams(object):
 
@@ -13,6 +13,7 @@ class HODParams(object):
         ch.setLevel(logging.INFO)
         formatter = logging.Formatter('%(levelname)s: %(message)s')
         ch.setFormatter(formatter)
+        self.log.addHandler(ch)
 
         self.params = hodpars
         self.log.info('Parameters updated: hodpars = {}.'.format(hodpars))
