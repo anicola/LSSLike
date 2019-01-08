@@ -126,16 +126,18 @@ class LSSTheory(object):
                 dic_hodpars[key] = dic_par[key]
             self.hodpars = hod_funcs.HODParams(dic_hodpars)
 
+        if self.hod == 1:
+            hodprof = hod.HODProfile(self.hodpars.lmminf, self.hodpars.sigmf, self.hodpars.fcf, self.hodpars.m0f, \
+                                         self.hodpars.m1f, self.hodpars.alphaf)
+            pk_hod_arr = np.log(np.array([hodprof.pk(cosmo, z, self.k_arr) for z in self.z_arr]))
+            pk_hod = ccl.Pk2D(a_arr=self.a_arr, lk_arr=np.log(self.k_arr), pk_arr=pk_hod_arr, is_logp=True)
+
         for i1,i2,_,ells,ndx in self.s.sortTracers() :
             if self.hod == 0:
                 self.log.info('hod = {}. Not using HOD to compute theory predictions.'.format(self.hod))
                 cls=ccl.angular_cl(cosmo,tr[i1],tr[i2],ells)
             else:
                 self.log.info('hod = {}. Using HOD to compute theory predictions.'.format(self.hod))
-                hodprof = hod.HODProfile(self.hodpars.lmminf, self.hodpars.sigmf, self.hodpars.fcf, self.hodpars.m0f, \
-                                         self.hodpars.m1f, self.hodpars.alphaf)
-                pk_hod_arr = np.log(np.array([hodprof.pk(cosmo, z, self.k_arr) for z in self.z_arr]))
-                pk_hod = ccl.Pk2D(a_arr=self.a_arr, lk_arr=np.log(self.k_arr), pk_arr=pk_hod_arr, is_logp=True)
                 cls = ccl.angular_cl(cosmo,tr[i1],tr[i2],ells, p_of_k_a=pk_hod)
             if (i1==i2) and ('Pw_bin%i'%i1 in dic_par):
                 cls+=dic_par['Pw_bin%i'%i1]
@@ -154,16 +156,18 @@ class LSSTheory(object):
                 dic_hodpars[key] = dic_par[key]
             self.hodpars = hod_funcs.HODParams(dic_hodpars)
 
+        if self.hod == 1:
+            hodprof = hod.HODProfile(self.hodpars.lmminf, self.hodpars.sigmf, self.hodpars.fcf, self.hodpars.m0f, \
+                                         self.hodpars.m1f, self.hodpars.alphaf)
+            pk_hod_arr = np.log(np.array([hodprof.pk(cosmo, z, self.k_arr) for z in self.z_arr]))
+            pk_hod = ccl.Pk2D(a_arr=self.a_arr, lk_arr=np.log(self.k_arr), pk_arr=pk_hod_arr, is_logp=True)
+
         for i1,i2,_,ells,ndx in self.s.sortTracers() :
             if self.hod == 0:
                 self.log.info('hod = {}. Not using HOD to compute theory predictions.'.format(self.hod))
                 cls=ccl.angular_cl(cosmo,tr[i1],tr[i2],ells)
             else:
                 self.log.info('hod = {}. Using HOD to compute theory predictions.'.format(self.hod))
-                hodprof = hod.HODProfile(self.hodpars.lmminf, self.hodpars.sigmf, self.hodpars.fcf, self.hodpars.m0f, \
-                                         self.hodpars.m1f, self.hodpars.alphaf)
-                pk_hod_arr = np.log(np.array([hodprof.pk(cosmo, z, self.k_arr) for z in self.z_arr]))
-                pk_hod = ccl.Pk2D(a_arr=self.a_arr, lk_arr=np.log(self.k_arr), pk_arr=pk_hod_arr, is_logp=True)
                 cls = ccl.angular_cl(cosmo,tr[i1],tr[i2],ells, p_of_k_a=pk_hod)
             theory_out[ndx]=cls
 
