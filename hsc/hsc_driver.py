@@ -213,7 +213,7 @@ class HSCAnalyze:
          'h0':h0,
          'n_s':0.96,
          'sigma_8':s8,
-         'transfer_function':'eisenstein_hu',
+         'transfer_function':'boltzmann_class',
          'matter_power_spectrum':'halofit',
          'has_rsd':False,'has_magnification':None}
 
@@ -266,7 +266,7 @@ class HSCAnalyze:
          'h0':h0,
          'n_s':0.96,
          'sigma_8':s8,
-         'transfer_function':'eisenstein_hu',
+         'transfer_function':'boltzmann_class',
          'matter_power_spectrum':'halofit',
          'has_rsd':False,'has_magnification':None}
 
