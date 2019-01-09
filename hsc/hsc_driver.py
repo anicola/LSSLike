@@ -331,12 +331,9 @@ class HSCAnalyze:
     
     #Define log(p). This is just a wrapper around the LSSLikelihood lk
     def logprobs(self,p):
-        import time
-        start = time.time()
         cls=self.predictTheory(p)
         #print (cls)
         likes=np.array([lk(cl) for lk,cl in zip(self.lks,cls)])
-        print(time.time()-start)
         # dof = np.array([len(cl) for cl in cls])
         self.chisq_cur = -2*likes.sum()
         self.log.debug("parameters: "+str(p)+" -> chi2= "+str(self.chisq_cur)+" dof = ncls - nparam: "+str(self.dofs))

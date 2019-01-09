@@ -89,6 +89,7 @@ class HODProfile(object) :
         self.alpha_f=alpha_f
         self.delta_mass=delta_mass
         self.is_delta_matter=is_delta_matter
+        print('HODProfile called with {}.'.format(cosmo))
 
     def n_cent(self,z,m) :
         """
@@ -135,10 +136,9 @@ class HODProfile(object) :
     def pk(self,k,a,lmmin=6.,lmmax=17.,nlm=256,return_decomposed=False) :
         """
         Returns power spectrum at redshift `z` sampled at all values of k in `k`.
-        
-        cosmo : CCL Cosmology
-        z : redshift
+
         k : array of wavenumbers in CCL units
+        a : scale factor
         lmmin, lmmax, nlm : mass edges and sampling rate for mass integral.
         return_decomposed : if True, returns 1-halo, 2-halo, bias, shot noise and total (see below for order).
         """
