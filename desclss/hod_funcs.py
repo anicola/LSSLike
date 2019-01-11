@@ -1,22 +1,23 @@
 import numpy as np
 import pyccl as ccl
-import logging
+# import logging
 # logging.basicConfig(level=logging.INFO)
 
 class HODParams(object):
 
     def __init__(self, hodpars):
 
-        self.log = logging.getLogger('HODParams')
-        self.log.setLevel(logging.INFO)
-        ch = logging.StreamHandler()
-        ch.setLevel(logging.INFO)
-        formatter = logging.Formatter('%(levelname)s: %(message)s')
-        ch.setFormatter(formatter)
-        self.log.addHandler(ch)
+        # self.log = logging.getLogger('HODParams')
+        # self.log.setLevel(logging.INFO)
+        # ch = logging.StreamHandler()
+        # ch.setLevel(logging.INFO)
+        # formatter = logging.Formatter('%(levelname)s: %(message)s')
+        # ch.setFormatter(formatter)
+        # self.log.addHandler(ch)
+        # self.log.propagate = False
 
         self.params = hodpars
-        self.log.info('Parameters updated: hodpars = {}.'.format(hodpars))
+        print('Parameters updated: hodpars = {}.'.format(hodpars))
 
         return
 

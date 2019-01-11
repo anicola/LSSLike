@@ -34,6 +34,7 @@ class LSSTheory(object):
             formatter = logging.Formatter('%(levelname)s: %(message)s')
             ch.setFormatter(formatter)
             self.log.addHandler(ch)
+            self.log.propagate = False
             print (self.log)
 
         # Set HOD flag
@@ -45,6 +46,10 @@ class LSSTheory(object):
             assert hodpars is not None, 'Using HOD for theoretical predictions but no HOD parameter values supplied. Aborting.'
             dic_hodpars = dict(zip(HOD_PARAM_KEYS, hodpars))
             self.hodpars = hod_funcs.HODParams(dic_hodpars)
+            # Provide a, k grids
+            self.k_arr = np.logspace(-4.3, 3, 1000)
+            self.z_arr = np.linspace(0., 3., 50)[::-1]
+            self.a_arr = 1./(1. + self.z_arr)
         else:
             self.log.info('Not using HOD for theoretical predictions.')
 
@@ -124,9 +129,11 @@ class LSSTheory(object):
         if self.hod == 1:
             hodprof = hod.HODProfile(cosmo, self.hodpars.lmminf, self.hodpars.sigmf, self.hodpars.fcf, self.hodpars.m0f, \
                                          self.hodpars.m1f, self.hodpars.alphaf)
-            # pk_hod_arr = np.log(np.array([hodprof.pk(self.k_arr, a) for a in self.a_arr]))
-            # pk_hod = ccl.Pk2D(a_arr=self.a_arr, lk_arr=np.log(self.k_arr), pk_arr=pk_hod_arr, is_logp=True)
-            pk_hod = ccl.Pk2D(pkfunc=hodprof.pk, is_logp=False)
+            # Provide a, k grids
+            pk_hod_arr = np.log(np.array([hodprof.pk(self.k_arr, a) for a in self.a_arr]))
+            pk_hod = ccl.Pk2D(a_arr=self.a_arr, lk_arr=np.log(self.k_arr), pk_arr=pk_hod_arr, is_logp=True)
+            # Use default grids in Pk2D
+            # pk_hod = ccl.Pk2D(pkfunc=hodprof.pk, is_logp=False)
 
         for i1,i2,_,ells,ndx in self.s.sortTracers() :
             if self.hod == 0:
@@ -155,8 +162,11 @@ class LSSTheory(object):
         if self.hod == 1:
             hodprof = hod.HODProfile(self.hodpars.lmminf, self.hodpars.sigmf, self.hodpars.fcf, self.hodpars.m0f, \
                                          self.hodpars.m1f, self.hodpars.alphaf)
-            pk_hod_arr = np.log(np.array([hodprof.pk(cosmo, z, self.k_arr) for z in self.z_arr]))
+            # Provide a, k grids
+            pk_hod_arr = np.log(np.array([hodprof.pk(self.k_arr, a) for a in self.a_arr]))
             pk_hod = ccl.Pk2D(a_arr=self.a_arr, lk_arr=np.log(self.k_arr), pk_arr=pk_hod_arr, is_logp=True)
+            # Use default grids in Pk2D
+            # pk_hod = ccl.Pk2D(pkfunc=hodprof.pk, is_logp=False)
 
         for i1,i2,_,ells,ndx in self.s.sortTracers() :
             if self.hod == 0:
