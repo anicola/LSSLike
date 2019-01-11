@@ -17,8 +17,8 @@ from ParamVec import ParamVec
 
 HOD_PARAM_KEYS = ['lmmin_0', 'lmmin_alpha', 'sigm_0', 'sigm_alpha', 'm0_0', 'm0_alpha', 'm1_0', 'm1_alpha', \
                   'alpha_0', 'alpha_alpha', 'fc_0', 'fc_alpha']
-HOD_PARAM_MINS = np.array([5., -2., 0., -2., 1e11, -2., 1e11, -2., 0., -2., 0., -2.])
-HOD_PARAM_MAXS = np.array([15., 2., 1., 2., 1e13, 2., 1e13, 2., 2., 2., 1., 2.])
+HOD_PARAM_MINS = np.array([9., -1., 0., -1., 10**6.5, -1., 10**11.5, -1., 0., -1., 0., -2.])
+HOD_PARAM_MAXS = np.array([15., 1., 0.8, 1., 10**13., 1., 10**17., 1., 2., 1., 1., 0.])
 
 class HSCAnalyze:
 
@@ -569,7 +569,10 @@ if __name__=="__main__":
         raise NotImplementedError('Only BiasMod = bz or const implemented.')
 
     if args.hod == 1:
-        hodpars = np.array([10., 0., 0.31, 0., 1e12, 0.3, 3.5e12, 0.2, 0.8, 0.3, 1., -0.1])
+        # Fiducial starting parameters loosely informed from Coupon et al., 2012
+        # arXiv: 1107.0616
+        # Table B1
+        hodpars = np.array([11.5, 0.3, 0.35, 0.3, 10**7.5, 0.7, 10**13., 0.1, 1., 0.3, 0.25, -1.5])
     else:
         hodpars=None
 
