@@ -20,7 +20,7 @@ HOD_PARAM_KEYS = ['lmmin_0', 'lmmin_alpha', 'sigm_0', 'sigm_alpha', 'm0_0', 'm0_
 HOD_PARAM_MINS = np.array([9., -1., 0., -1., 10**6.5, -1., 10**11.5, -1., 0., -1., 0., -2.])
 HOD_PARAM_MAXS = np.array([15., 1., 0.8, 1., 10**13., 1., 10**17., 1., 2., 1., 1., 0.])
 
-DEFAULTLIKEEXC = 1e9
+DEFAULTLIKEEXC = -1e9
 
 class HSCAnalyze:
 
@@ -346,7 +346,7 @@ class HSCAnalyze:
 
         self.chisq_cur = -2*likes.sum()
         self.log.debug("parameters: "+str(p)+" -> chi2= "+str(self.chisq_cur)+" dof = ncls - nparam: "+str(self.dofs))
-        
+
         return likes
 
     def logprob(self,p):
