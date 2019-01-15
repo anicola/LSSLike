@@ -160,7 +160,7 @@ class LSSTheory(object):
             self.hodpars = hod_funcs.HODParams(dic_hodpars)
 
         if self.hod == 1:
-            hodprof = hod.HODProfile(self.hodpars.lmminf, self.hodpars.sigmf, self.hodpars.fcf, self.hodpars.m0f, \
+            hodprof = hod.HODProfile(cosmo, self.hodpars.lmminf, self.hodpars.sigmf, self.hodpars.fcf, self.hodpars.m0f, \
                                          self.hodpars.m1f, self.hodpars.alphaf)
             # Provide a, k grids
             pk_hod_arr = np.log(np.array([hodprof.pk(self.k_arr, a) for a in self.a_arr]))

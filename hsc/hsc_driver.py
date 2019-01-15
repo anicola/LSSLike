@@ -8,6 +8,7 @@ matplotlib.use('agg')
 import matplotlib.pyplot as plt
 import pyccl as ccl
 import argparse
+import os
 
 import sacc
 from desclss import LSSTheory,LSSLikelihood
@@ -516,7 +517,7 @@ class HSCAnalyze:
         res = scipy.optimize.minimize(lambda x:-self.logprobs(x).sum(),
                                 self.P.values(),
                                 bounds=self.P.bounds(),
-                                method='TNC', options={'eps':1e-3, 'disp':True, 'maxiter': 500})
+                                method='TNC', options={'eps':1e-3, 'disp':True, 'maxiter': 1})
 
         return res
 
@@ -574,13 +575,20 @@ if __name__=="__main__":
 
     args = parser.parse_args()
 
+    output_filename, _ = os.path.splitext(args.path2fig)
+
+    # Setup logging to file and stderr
     logger = logging.getLogger('main')
     logger.setLevel(logging.INFO)
-    ch = logging.StreamHandler()
-    ch.setLevel(logging.INFO)
+    consoleHandler = logging.StreamHandler()
+    fileHandler = logging.FileHandler(output_filename+'.txt')
+    consoleHandler.setLevel(logging.INFO)
+    fileHandler.setLevel(logging.INFO)
     formatter = logging.Formatter('%(levelname)s: %(message)s')
-    ch.setFormatter(formatter)
-    logger.addHandler(ch)
+    consoleHandler.setFormatter(formatter)
+    fileHandler.setFormatter(formatter)
+    logger.addHandler(consoleHandler)
+    logger.addHandler(fileHandler)
     logger.propagate = False
 
     if args.lmax == 'kmax':
@@ -635,9 +643,10 @@ if __name__=="__main__":
         # h=HSCAnalyze(sys.argv[1:], BiasMod='const', bias=[0.7,1.5,1.8,2.0], fitNoise=False, noise=None)
         # h=HSCAnalyze(sys.argv[1:])
         res = h.minimize()
-        h.log.info('Optimizer message {}.'.format(res.message))
-        h.log.info('Minimum found at {}.'.format(res.x))
-        h.log.info('No of iterations {}.'.format(res.nit))
+        logger.info('Optimizer message {}.'.format(res.message))
+        logger.info('Minimum found at {}.'.format(res.x))
+        logger.info('Minimum chi2 = {}.'.format(h.chisq_cur))
+        logger.info('No of iterations {}.'.format(res.nit))
         h.plotDataTheory(params=res.x, path2fig=args.path2fig)
         # h.plotDataTheory(params=res.x, path2fig='/Users/Andrina/Documents/WORK/HSC-LSS/plots/spectra_eab_best_pzb4bins_bpw200_covdata_cont_dpt_dst_str_ams_fwh_ssk_ssc/cls_data-theory+SN-rem_mPk=halofit_n_sn=const_bz=const_Ntomo=4_kmax=0.15_test-fit.pdf')
         # h.plotDataTheory(params=res.x)
