@@ -20,6 +20,8 @@ HOD_PARAM_KEYS = ['lmmin_0', 'lmmin_alpha', 'sigm_0', 'sigm_alpha', 'm0_0', 'm0_
 HOD_PARAM_MINS = np.array([9., -1., 0., -1., 10**6.5, -1., 10**11.5, -1., 0., -1., 0., -2.])
 HOD_PARAM_MAXS = np.array([15., 1., 0.8, 1., 10**13., 1., 10**17., 1., 2., 1., 1., 0.])
 
+DEFAULTLIKEEXC = 1e9
+
 class HSCAnalyze:
 
     def __init__(self, fnames, lmin='auto', lmax='auto', kmax=None, zeff=None, cosmo=None,
@@ -332,12 +334,19 @@ class HSCAnalyze:
     
     #Define log(p). This is just a wrapper around the LSSLikelihood lk
     def logprobs(self,p):
-        cls=self.predictTheory(p)
-        #print (cls)
-        likes=np.array([lk(cl) for lk,cl in zip(self.lks,cls)])
-        # dof = np.array([len(cl) for cl in cls])
+
+        try:
+            cls=self.predictTheory(p)
+            #print (cls)
+            likes=np.array([lk(cl) for lk,cl in zip(self.lks,cls)])
+            # dof = np.array([len(cl) for cl in cls])
+        except:
+            self.log.warning("Caught error from CCL. Setting likelihoods to DEFAULTLIKEEXC.")
+            likes = DEFAULTLIKEEXC*np.ones(len(self.lks))
+
         self.chisq_cur = -2*likes.sum()
         self.log.debug("parameters: "+str(p)+" -> chi2= "+str(self.chisq_cur)+" dof = ncls - nparam: "+str(self.dofs))
+        
         return likes
 
     def logprob(self,p):
