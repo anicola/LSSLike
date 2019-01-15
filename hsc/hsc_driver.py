@@ -328,6 +328,14 @@ class HSCAnalyze:
             for i in range(self.Ntomo):
                 dic['zshift_bin%i'%i]=P.value('s_%i'%i)
 
+        if self.hod == 1:
+            if self.fitHOD == 1:
+                for i, key in enumerate(HOD_PARAM_KEYS):
+                    dic['{}'.format(key)]= P.value('{}'.format(key))
+            else:
+                for i, key in enumerate(HOD_PARAM_KEYS):
+                    dic['{}'.format(key)]= self.hodpars['{}'.format(key)]
+
         cls=[lt.get_noSN_prediction(dic) for lt in self.lts]
 
         return cls
