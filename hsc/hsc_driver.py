@@ -517,7 +517,7 @@ class HSCAnalyze:
         res = scipy.optimize.minimize(lambda x:-self.logprobs(x).sum(),
                                 self.P.values(),
                                 bounds=self.P.bounds(),
-                                method='TNC', options={'eps':1e-3, 'disp':True, 'maxiter': 1})
+                                method='TNC', options={'eps':1e-3, 'disp':True, 'maxiter': 500})
 
         return res
 
