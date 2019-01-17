@@ -42,6 +42,8 @@ class HSCAnalyze:
                  fitHOD=0,
                  hodpars=None):
 
+        assert join_saccs, 'Shot noise currently only supports coadded saccs.'
+
         if type(log)==logging.Logger:
             self.log=log
         else:
@@ -58,32 +60,63 @@ class HSCAnalyze:
         self.saccs=[sacc.SACC.loadFromHDF(fn) for fn in fnames]
         self.log.info ("Loaded %i sacc files."%len(self.saccs))
 
+        # Determine noise from noise saccs
+        if noise is None:
+            self.log.info('No shot noise parameter provided. Determining from noise sacc.')
+
+            fnames_saccs_noise = [os.path.splitext(fn)[0]+'_noise.sacc' for fn in fnames]
+            self.log.info('Reading noise saccs {}.'.format(fnames_saccs_noise))
+            try:
+                self.saccs_noise = [sacc.SACC.loadFromHDF(fn) for fn in fnames_saccs_noise]
+                self.log.info ("Loaded %i noise sacc files."%len(self.saccs))
+            except IOError:
+                raise IOError("Noise = {}, need to provide noise saccs.".format(noise))
+
+            # Add precision matrix to noise saccs
+            for i, s in enumerate(self.saccs):
+                self.saccs_noise[i].precision = s.precision
+
+            if join_saccs:
+                self.saccs_noise = [sacc.coadd(self.saccs_noise)]
+            if cull_cross:
+                for s in self.saccs_noise:
+                    s.cullCross()
+
+        else:
+            self.saccs_noise = None
+
         if join_saccs:
             self.saccs=[sacc.coadd(self.saccs)]
         if cull_cross:
             for s in self.saccs:
                 s.cullCross()
-    
-            
+
         self.Ntomo=len(self.saccs[0].tracers) ## number of tomo bins
         self.log.info ("Ntomo bins: %i"%self.Ntomo)
+
+        self.fixnames()
+        self.cutLranges(lmin, lmax, kmax, zeff, cosmo)
 
         if not (type(noise)==list):
             if noise is not None:
                 self.log.info('Scalar shot noise parameter provided. Setting constant for all tomographic bins.')
                 noise=[noise]*self.Ntomo
             else:
-                self.log.info('No shot noise parameter provided. Determining from sacc.')
-                noise = [(1./np.mean(t.extra_cols['ndens']))*1e8 for t in self.saccs[0].tracers]
-                self.log.info('Shot noise array = {}.'.format(noise))
+                noise = [0 for i in range(self.Ntomo*len(self.saccs_noise))]
+                for s in self.saccs_noise:
+                    for i in range(self.Ntomo):
+                        binmask = (s.binning.binar['T1']==i)&(s.binning.binar['T2']==i)
+                        noise[i] = s.mean.vector[binmask]*1e8
+
+                # noise = [(1./np.mean(t.extra_cols['ndens']))*1e8 for t in self.saccs[0].tracers]
         else:
             noise = noise
+
+        self.log.info('Shot noise array = {}.'.format(noise))
 
         assert len(noise) == len(self.saccs)*self.Ntomo, 'Noise list shape does not match total number of tracers.'
         assert len(pzshifts) == self.Ntomo, 'pzshifts array shape does not match number of tomographic bins.'
 
-        self.fixnames()
-        self.cutLranges(lmin, lmax, kmax, zeff, cosmo)
         self.setParametes(fitOc,Oc,fits8,s8,fith0,h0,fitBias,BiasMod,zbias,bias,fitNoise,noise,fitPZShifts,pzshifts, \
                           hod, fitHOD, hodpars)
             
@@ -142,9 +175,16 @@ class HSCAnalyze:
         self.log.info('lmin = {}, lmax = {}.'.format(self.lmin, self.lmax))
 
         self.ncls = 0
-        for s in self.saccs:
-            s.cullLminLmax(self.lmin,self.lmax)
-            self.ncls += s.mean.vector.shape[0]
+        if self.saccs_noise is None:
+            for s in self.saccs:
+                s.cullLminLmax(self.lmin,self.lmax)
+                self.ncls += s.mean.vector.shape[0]
+        # If saccs_noise is not None, also cull those
+        else:
+            for i, s in enumerate(self.saccs):
+                s.cullLminLmax(self.lmin,self.lmax)
+                self.saccs_noise[i].cullLminLmax(self.lmin,self.lmax)
+                self.ncls += s.mean.vector.shape[0]
 
         self.log.info('ncls = {}.'.format(self.ncls))
 
