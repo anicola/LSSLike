@@ -52,7 +52,7 @@ class HSCCoreModule(object):
 
             if self.cl_params['fitHOD'] == 1:
                 dic_hodpars = self.get_params(params, 'hod')
-                self.hodpars = hod_funcs.HODParams(dic_hodpars)
+                self.hodpars = hod_funcs.HODParams(dic_hodpars, islogm0_0=True, islogm1_0=True)
 
             if self.cl_params['hod'] == 1:
                 hodprof = hod.HODProfile(cosmo, self.hodpars.lmminf, self.hodpars.sigmf, self.hodpars.fcf, self.hodpars.m0f, \
@@ -70,7 +70,6 @@ class HSCCoreModule(object):
                     cls = ccl.angular_cl(cosmo, tracers[i1], tracers[i2], self.ells, p_of_k_a=pk_hod)
 
                 cls_conv = np.zeros(ndx.shape[0])
-                print(s.binning.binar['ls'])
                 # Convolve with windows
                 for j in range(ndx.shape[0]):
                     cls_conv[j] = s.binning.windows[ndx[j]].convolve(cls)
@@ -149,3 +148,8 @@ class HSCCoreModule(object):
         self.k_arr = np.logspace(-4.3, 3, 1000)
         self.z_arr = np.linspace(0., 3., 50)[::-1]
         self.a_arr = 1./(1. + self.z_arr)
+
+        if self.cl_params['hod'] == 1 and self.cl_params['fitHOD'] == 0:
+            logger.info('Using HOD for theory predictions but not fitting parameters.')
+            dic_hodpars = self.get_params(self.constants, 'hod')
+            self.hodpars = hod_funcs.HODParams(dic_hodpars, islogm0_0=True, islogm1_0=True)
