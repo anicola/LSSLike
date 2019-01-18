@@ -103,7 +103,8 @@ def kmax2lmax(kmax, zeff, cosmo=None):
 
 parser = argparse.ArgumentParser(description='Calculate HSC clustering cls.')
 
-parser.add_argument('--path2output', dest='path2output', type=str, help='Path to output.', required=False)
+parser.add_argument('--path2output', dest='path2output', type=str, help='Path to output.', required=True)
+parser.add_argument('--chainsPrefix', dest='chainsPrefix', type=str, help='Prefix of output chains.', required=True)
 parser.add_argument('--fitBias', dest='fitBias', type=int, help='Tag denoting if to fit for bias parameters.', required=False, default=1)
 parser.add_argument('--biasMod', dest='biasMod', type=str, help='Tag denoting which bias model to use. biasMod = {bz, const}.', required=False, default='bz')
 parser.add_argument('--fitNoise', dest='fitNoise', type=int, help='Tag denoting if to fit shot noise.', required=False, default=1)
@@ -230,10 +231,19 @@ chain.addLikelihoodModule(HSCLikeModule(saccs))
 
 chain.setup()
 
-sampler = CosmoHammerSampler(
+if args.platfrm == 'local':
+    sampler = CosmoHammerSampler(
+                params= params,
+                likelihoodComputationChain=chain,
+                filePrefix=os.path.join(args.path2output, args.chainsPrefix),
+                walkersRatio=2,
+                burninIterations=3000,
+                sampleIterations=1000)
+else:
+    sampler = MpiCosmoHammerSampler(
             params= params,
             likelihoodComputationChain=chain,
-            filePrefix=os.path.join(args.path2output, 'test'),
+            filePrefix=os.path.join(args.path2output, args.chainsPrefix),
             walkersRatio=2,
             burninIterations=3000,
             sampleIterations=1000)
