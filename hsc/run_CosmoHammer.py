@@ -124,6 +124,15 @@ logger.info('Called hsc_driver with saccfiles = {}.'.format(args.saccfiles))
 saccs = [sacc.SACC.loadFromHDF(fn) for fn in args.saccfiles]
 logger.info ("Loaded {} sacc files.".format(len(saccs)))
 
+# Make path to output
+if not os.path.isdir(args.path2output):
+    try:
+        os.makedirs(args.path2output)
+        logger.info('Created directory {}.'.format(args.path2output))
+    except:
+        logger.info('Directory {} already exists.'.format(args.path2output))
+        pass
+
 if args.platfrm == 'local':
     from cosmoHammer import CosmoHammerSampler
 else:
