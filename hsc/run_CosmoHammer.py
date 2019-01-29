@@ -159,7 +159,7 @@ if args.fitNoise == 0:
         saccs_noise[i].precision = s.precision
 
     if args.joinSaccs == 1:
-        saccs_noise = [sacc.coadd(saccs_noise)]
+        saccs_noise = [sacc.coadd(saccs_noise, mode='area')]
     if args.cullCross == 1:
         for s in saccs_noise:
             s.cullCross()
@@ -168,7 +168,7 @@ else:
     saccs_noise = None
 
 if args.joinSaccs == 1:
-    saccs=[sacc.coadd(saccs)]
+    saccs=[sacc.coadd(saccs, mode='area')]
 if args.cullCross == 1:
     for s in saccs:
         s.cullCross()
@@ -253,7 +253,7 @@ else:
             params= params,
             likelihoodComputationChain=chain,
             filePrefix=os.path.join(args.path2output, args.chainsPrefix),
-            walkersRatio=2,
+            walkersRatio=8,
             burninIterations=3000,
             sampleIterations=1000)
 
