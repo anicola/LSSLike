@@ -7,6 +7,7 @@ from scipy.interpolate import interp1d
 import numpy as np
 from desclss import hod
 from desclss import hod_funcs
+from cosmoHammer.exceptions import LikelihoodComputationException
 
 import logging
 logging.basicConfig(level=logging.INFO)
@@ -47,43 +48,48 @@ class HSCCoreModule(object):
         cosmo_params = self.get_params(params, 'cosmo')
         cosmo = ccl.Cosmology(**cosmo_params)
 
-        for i, s in enumerate(self.saccs):
-            tracers = self.get_tracers(s, cosmo, params)
+        try:
+            for i, s in enumerate(self.saccs):
+                tracers = self.get_tracers(s, cosmo, params)
 
-            if self.cl_params['fitHOD'] == 1:
-                dic_hodpars = self.get_params(params, 'hod')
-                self.hodpars = hod_funcs.HODParams(dic_hodpars, islogm0_0=True, islogm1_0=True)
+                if self.cl_params['fitHOD'] == 1:
+                    dic_hodpars = self.get_params(params, 'hod')
+                    self.hodpars = hod_funcs.HODParams(dic_hodpars, islogm0_0=True, islogm1_0=True)
 
-            if self.cl_params['hod'] == 1:
-                hodprof = hod.HODProfile(cosmo, self.hodpars.lmminf, self.hodpars.sigmf, self.hodpars.fcf, self.hodpars.m0f, \
-                                             self.hodpars.m1f, self.hodpars.alphaf)
-                # Provide a, k grids
-                pk_hod_arr = np.log(np.array([hodprof.pk(self.k_arr, a) for a in self.a_arr]))
-                pk_hod = ccl.Pk2D(a_arr=self.a_arr, lk_arr=np.log(self.k_arr), pk_arr=pk_hod_arr, is_logp=True)
+                if self.cl_params['hod'] == 1:
+                    hodprof = hod.HODProfile(cosmo, self.hodpars.lmminf, self.hodpars.sigmf, self.hodpars.fcf, self.hodpars.m0f, \
+                                                 self.hodpars.m1f, self.hodpars.alphaf)
+                    # Provide a, k grids
+                    pk_hod_arr = np.log(np.array([hodprof.pk(self.k_arr, a) for a in self.a_arr]))
+                    pk_hod = ccl.Pk2D(a_arr=self.a_arr, lk_arr=np.log(self.k_arr), pk_arr=pk_hod_arr, is_logp=True)
 
-            for i1, i2, _, ells_binned, ndx in s.sortTracers() :
-                if self.cl_params['hod'] == 0:
-                    logger.info('hod = {}. Not using HOD to compute theory predictions.'.format(self.cl_params['hod']))
-                    cls = ccl.angular_cl(cosmo, tracers[i1], tracers[i2], self.ells)
-                else:
-                    logger.info('hod = {}. Using HOD to compute theory predictions.'.format(self.cl_params['hod']))
-                    cls = ccl.angular_cl(cosmo, tracers[i1], tracers[i2], self.ells, p_of_k_a=pk_hod)
-
-                cls_conv = np.zeros(ndx.shape[0])
-                # Convolve with windows
-                for j in range(ndx.shape[0]):
-                    cls_conv[j] = s.binning.windows[ndx[j]].convolve(cls)
-
-                if i1 == i2:
-                    # We have an auto-correlation
-                    if self.cl_params['fitNoise'] == 1:
-                        cls_conv += params['Pw_s%i_bin%i'%(i, i1)]
+                for i1, i2, _, ells_binned, ndx in s.sortTracers() :
+                    if self.cl_params['hod'] == 0:
+                        logger.info('hod = {}. Not using HOD to compute theory predictions.'.format(self.cl_params['hod']))
+                        cls = ccl.angular_cl(cosmo, tracers[i1], tracers[i2], self.ells)
                     else:
-                        cls_conv += self.noise[i][i1]
-                cl_theory[i][ndx] = cls_conv
+                        logger.info('hod = {}. Using HOD to compute theory predictions.'.format(self.cl_params['hod']))
+                        cls = ccl.angular_cl(cosmo, tracers[i1], tracers[i2], self.ells, p_of_k_a=pk_hod)
 
-        # Add the theoretical cls to the context
-        ctx.add('cl_theory', cl_theory)
+                    cls_conv = np.zeros(ndx.shape[0])
+                    # Convolve with windows
+                    for j in range(ndx.shape[0]):
+                        cls_conv[j] = s.binning.windows[ndx[j]].convolve(cls)
+
+                    if i1 == i2:
+                        # We have an auto-correlation
+                        if self.cl_params['fitNoise'] == 1:
+                            cls_conv += params['Pw_s%i_bin%i'%(i, i1)]
+                        else:
+                            cls_conv += self.noise[i][i1]
+                    cl_theory[i][ndx] = cls_conv
+
+            # Add the theoretical cls to the context
+            ctx.add('cl_theory', cl_theory)
+
+        except:
+            logging.warn('Runtime error caught from CCL. Used params [%s]'%( ', '.join([str(i) for i in p]) ) )
+            raise LikelihoodComputationException()
 
     def get_params(self, params, paramtype):
 
