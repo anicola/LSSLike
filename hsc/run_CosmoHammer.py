@@ -206,25 +206,39 @@ PARAM_MAPPING = {'Omega_c': 0
 
 if args.fitBias == 1:
     if args.biasMod == 'bz':
+        logger.info('Fitting galaxy bias with bias model = {}.'.format(args.biasMod))
         PARAM_MAPPING.update(dict(zip(BIAS_PARAM_BZ_KEYS, np.arange(len(PARAM_MAPPING), \
                                                 len(PARAM_MAPPING) + len(BIAS_PARAM_BZ_KEYS), dtype='int'))))
         tempparams = np.concatenate((BIAS_PARAM_BZ_MEANS, BIAS_PARAM_BZ_MINS, BIAS_PARAM_BZ_MAXS, \
                                      BIAS_PARAM_BZ_WIDTHS), axis=0)
         params = np.vstack((params, tempparams.T))
 
+        z_b = np.array([0.0, 0.5, 1.0, 2.0, 4.0])
+        DEFAULT_PARAMS['z_b'] = z_b
+
     elif args.biasMod == 'const':
+        logger.info('Fitting galaxy bias with bias model = {}.'.format(args.biasMod))
         PARAM_MAPPING.update(dict(zip(BIAS_PARAM_CONST_KEYS, np.arange(len(PARAM_MAPPING), \
                                                 len(PARAM_MAPPING) + len(BIAS_PARAM_CONST_KEYS), dtype='int'))))
         tempparams = np.concatenate((BIAS_PARAM_CONST_MEANS, BIAS_PARAM_CONST_MINS, BIAS_PARAM_CONST_MAXS, \
                                      BIAS_PARAM_CONST_WIDTHS), axis=0)
         params = np.vstack((params, tempparams.T))
-        
+
 else:
     if args.biasMod == 'bz':
+        logger.info('Not fitting galaxy bias with bias model = {}.'.format(args.biasMod))
+        logger.info('Setting galaxy bias to 1.')
         z_b = np.array([0.0, 0.5, 1.0, 2.0, 4.0])
         DEFAULT_PARAMS['z_b'] = z_b
 
+        b_bz_keys = ['b_0.0', 'b_0.5', 'b_1.0', 'b_2.0', 'b_4.0']
+        b_bz = np.ones(5)
+        for i, bin in enumerate(b_bz_keys):
+            DEFAULT_PARAMS[bin] = b_bz[i]
+
     elif args.biasMod == 'const':
+        logger.info('Not fitting galaxy bias with bias model = {}.'.format(args.biasMod))
+        logger.info('Setting galaxy bias to 1.')
         b_bin_keys = ['b_bin0', 'b_bin1', 'b_bin2', 'b_bin3']
         b_bin = np.ones(4)
         for i, bin in enumerate(b_bin_keys):
