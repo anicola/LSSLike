@@ -46,9 +46,10 @@ class HSCCoreModule(object):
         cl_theory = [np.zeros((s.size(),)) for s in self.saccs]
 
         cosmo_params = self.get_params(params, 'cosmo')
-        cosmo = ccl.Cosmology(**cosmo_params)
 
         try:
+            cosmo = ccl.Cosmology(**cosmo_params)
+            
             for i, s in enumerate(self.saccs):
                 tracers = self.get_tracers(s, cosmo, params)
 
