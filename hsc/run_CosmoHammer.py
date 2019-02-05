@@ -24,6 +24,15 @@ HOD_PARAM_WIDTHS = np.atleast_2d(np.array([1., 0.1, 0.1, 0.1, 1., 0.1, 1., 0.1, 
 HOD_PARAM_MINS = np.atleast_2d(np.array([9., -1., 0., -1., 5.5, -1., 11., -1., 0., -1., 0., -3.]))
 HOD_PARAM_MAXS = np.atleast_2d(np.array([15., 1., 0.8, 1., 13., 1., 17., 1., 2., 1., 1., 0.]))
 
+HOD_BIN_PARAM_KEYS = []
+for i in range(4):
+    HOD_BIN_PARAM_KEYS += ['lmmin_0_bin{}'.format(i), 'sigm_0_bin{}'.format(i), 'm0_0_bin{}'.format(i), \
+                           'm1_0_bin{}'.format(i), 'alpha_0_bin{}'.format(i), 'fc_0_bin{}'.format(i)]
+HOD_BIN_PARAM_MEANS = np.atleast_2d(np.tile(np.array([10., 0.35, 7.5, 13., 1., 0.25]), 4))
+HOD_BIN_PARAM_WIDTHS = np.atleast_2d(np.tile(np.array([1., 0.1, 1., 1., 0.1, 0.1]), 4))
+HOD_BIN_PARAM_MINS = np.atleast_2d(np.tile(np.array([9., 0., 5.5, 11., 0., 0.]), 4))
+HOD_BIN_PARAM_MAXS = np.atleast_2d(np.tile(np.array([15., 0.8, 13., 17., 2., 1.]), 4))
+
 BIAS_PARAM_BZ_KEYS = ['b_0.0', 'b_0.5', 'b_1.0', 'b_2.0', 'b_4.0']
 BIAS_PARAM_BZ_MEANS = np.atleast_2d(np.array([0.7, 1.5, 1.8, 2.0, 2.5]))
 BIAS_PARAM_BZ_WIDTHS = np.atleast_2d(0.1*np.ones(len(BIAS_PARAM_BZ_KEYS)))
@@ -245,10 +254,20 @@ else:
             DEFAULT_PARAMS[bin] = b_bin[i]
 
 if args.fitHOD == 1:
-    PARAM_MAPPING.update(dict(zip(HOD_PARAM_KEYS, np.arange(len(PARAM_MAPPING), \
-                                    len(PARAM_MAPPING) + len(HOD_PARAM_KEYS), dtype='int'))))
-    tempparams = np.concatenate((HOD_PARAM_MEANS, HOD_PARAM_MINS, HOD_PARAM_MAXS, \
-                                     HOD_PARAM_WIDTHS), axis=0)
+    if args.hod == 'z_evol':
+        PARAM_MAPPING.update(dict(zip(HOD_PARAM_KEYS, np.arange(len(PARAM_MAPPING), \
+                                        len(PARAM_MAPPING) + len(HOD_PARAM_KEYS), dtype='int'))))
+        tempparams = np.concatenate((HOD_PARAM_MEANS, HOD_PARAM_MINS, HOD_PARAM_MAXS, \
+                                         HOD_PARAM_WIDTHS), axis=0)
+    elif args.hod == 'bin':
+        PARAM_MAPPING.update(dict(zip(HOD_BIN_PARAM_KEYS, np.arange(len(PARAM_MAPPING), \
+                                        len(PARAM_MAPPING) + len(HOD_BIN_PARAM_KEYS), dtype='int'))))
+        tempparams = np.concatenate((HOD_BIN_PARAM_MEANS, HOD_BIN_PARAM_MINS, HOD_BIN_PARAM_MAXS, \
+                                         HOD_BIN_PARAM_WIDTHS), axis=0)
+    else:
+        logger.info('Only hod options bin or z_evol supported. Aborting.')
+        raise NotImplementedError()
+
     params = np.vstack((params, tempparams.T))
 
 # Set up CosmoHammer

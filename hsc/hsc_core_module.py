@@ -49,15 +49,15 @@ class HSCCoreModule(object):
 
         try:
             cosmo = ccl.Cosmology(**cosmo_params)
-            
+
             for i, s in enumerate(self.saccs):
                 tracers = self.get_tracers(s, cosmo, params)
 
-                if self.cl_params['fitHOD'] == 1:
+                if self.cl_params['fitHOD'] == 1 and self.cl_params['hod'] == 'z_evol':
                     dic_hodpars = self.get_params(params, 'hod')
                     self.hodpars = hod_funcs.HODParams(dic_hodpars, islogm0_0=True, islogm1_0=True)
 
-                if self.cl_params['hod'] == 1:
+                if self.cl_params['hod'] == 'z_evol':
                     hodprof = hod.HODProfile(cosmo, self.hodpars.lmminf, self.hodpars.sigmf, self.hodpars.fcf, self.hodpars.m0f, \
                                                  self.hodpars.m1f, self.hodpars.alphaf)
                     # Provide a, k grids
@@ -68,9 +68,23 @@ class HSCCoreModule(object):
                     if self.cl_params['hod'] == 0:
                         logger.info('hod = {}. Not using HOD to compute theory predictions.'.format(self.cl_params['hod']))
                         cls = ccl.angular_cl(cosmo, tracers[i1], tracers[i2], self.ells)
-                    else:
+                    elif self.cl_params['hod'] == 'z_evol':
                         logger.info('hod = {}. Using HOD to compute theory predictions.'.format(self.cl_params['hod']))
                         cls = ccl.angular_cl(cosmo, tracers[i1], tracers[i2], self.ells, p_of_k_a=pk_hod)
+                    elif self.cl_params['hod'] == 'bin':
+                        dic_hodpars = self.get_params(params, 'hod_bin', i1)
+                        self.hodpars = hod_funcs.HODParams(dic_hodpars, islogm0_0=True, islogm1_0=True)
+                        hodprof = hod.HODProfile(cosmo, self.hodpars.lmminf, self.hodpars.sigmf, self.hodpars.fcf, self.hodpars.m0f, \
+                                                     self.hodpars.m1f, self.hodpars.alphaf)
+                        # Provide a, k grids
+                        pk_hod_arr = np.log(np.array([hodprof.pk(self.k_arr, a) for a in self.a_arr]))
+                        pk_hod = ccl.Pk2D(a_arr=self.a_arr, lk_arr=np.log(self.k_arr), pk_arr=pk_hod_arr, is_logp=True)
+
+                        logger.info('hod = {}. Using HOD to compute theory predictions.'.format(self.cl_params['hod']))
+                        cls = ccl.angular_cl(cosmo, tracers[i1], tracers[i2], self.ells, p_of_k_a=pk_hod)
+                    else:
+                        logger.info('Only hod options 0, z_evol and bin supported.')
+                        raise NotImplementedError()
 
                     cls_conv = np.zeros(ndx.shape[0])
                     # Convolve with windows
@@ -92,7 +106,7 @@ class HSCCoreModule(object):
             logging.warn('Runtime error caught from CCL. Used params [%s]'%( ', '.join([str(i) for i in p]) ) )
             raise LikelihoodComputationException()
 
-    def get_params(self, params, paramtype):
+    def get_params(self, params, paramtype, bin=None):
 
         params_subset = {}
 
@@ -104,12 +118,22 @@ class HSCCoreModule(object):
         elif paramtype == 'hod':
             KEYS = ['lmmin_0', 'lmmin_alpha', 'sigm_0', 'sigm_alpha', 'm0_0', 'm0_alpha', 'm1_0', 'm1_alpha', \
                   'alpha_0', 'alpha_alpha', 'fc_0', 'fc_alpha']
+        elif paramtype == 'hod_bin':
+            assert bin is not None, 'paramtype = {}, but bin number not given. Aborting.'.format(paramtype)
+            BIN_KEYS = ['lmmin_0_bin{}'.format(bin), 'sigm_0_bin{}'.format(bin), 'm0_0_bin{}'.format(bin), \
+                    'm1_0_bin{}'.format(bin), 'alpha_0_bin{}'.format(bin), 'fc_0_bin{}'.format(bin)]
+            KEYS = ['lmmin_0', 'sigm_0', 'm0_0', 'm1_0', 'alpha_0', 'fc_0']
         else:
             return
 
-        for key in KEYS:
-            if key in params:
-                params_subset[key] = params[key]
+        if paramtype is not 'hod_bin':
+            for key in KEYS:
+                if key in params:
+                    params_subset[key] = params[key]
+        else:
+            for i, key in enumerate(BIN_KEYS):
+                if key in params:
+                    params_subset[KEYS[i]] = params[key]
 
         return params_subset
 
