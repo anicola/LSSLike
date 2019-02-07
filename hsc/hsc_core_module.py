@@ -18,7 +18,7 @@ class HSCCoreModule(object):
     Dummy Core Module for calculating the squares of parameters.
     """
 
-    def __init__(self, PARAM_MAPPING, DEFAULT_PARAMS, cl_params, saccs, noise):
+    def __init__(self, PARAM_MAPPING, DEFAULT_PARAMS, cl_params, saccs, noise, fid_cosmo_params=None):
         """
         Constructor of the DummyCoreModule
         """
@@ -30,6 +30,8 @@ class HSCCoreModule(object):
         self.noise = noise
         self.lmax = self.saccs[0].binning.windows[0].w.shape[0]
         self.ells = np.arange(self.lmax)
+        if fid_cosmo_params is not None:
+            self.cosmo = ccl.Cosmology(**fid_cosmo_params)
 
     def __call__(self, ctx):
         """
@@ -48,7 +50,10 @@ class HSCCoreModule(object):
         cosmo_params = self.get_params(params, 'cosmo')
 
         try:
-            cosmo = ccl.Cosmology(**cosmo_params)
+            if (cosmo_params.viewkeys() & self.mapping.viewkeys()) != {}:
+                cosmo = ccl.Cosmology(**cosmo_params)
+            else:
+                cosmo = self.cosmo
 
             for i, s in enumerate(self.saccs):
                 tracers = self.get_tracers(s, cosmo, params)

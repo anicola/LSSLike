@@ -116,7 +116,7 @@ parser.add_argument('--path2output', dest='path2output', type=str, help='Path to
 parser.add_argument('--chainsPrefix', dest='chainsPrefix', type=str, help='Prefix of output chains.', required=True)
 parser.add_argument('--fitBias', dest='fitBias', type=int, help='Tag denoting if to fit for bias parameters.', required=False, default=1)
 parser.add_argument('--biasMod', dest='biasMod', type=str, help='Tag denoting which bias model to use. biasMod = {bz, const}.', required=False, default='bz')
-parser.add_argument('--fitNoise', dest='fitNoise', type=int, help='Tag denoting if to fit shot noise.', required=False, default=1)
+parser.add_argument('--fitNoise', dest='fitNoise', type=int, help='Tag denoting if to fit shot noise.', required=False, default=0)
 parser.add_argument('--lmin', dest='lmin', type=str, help='Tag specifying how lmin is determined. lmin = {auto, kmax}.', required=False, default='auto')
 parser.add_argument('--lmax', dest='lmax', type=str, help='Tag specifying how lmax is determined. lmax = {auto, kmax}.', required=False, default='auto')
 parser.add_argument('--kmax', dest='kmax', type=float, help='If lmax=kmax, this sets kmax to use.', required=False)
@@ -124,6 +124,8 @@ parser.add_argument('--hod', dest='hod', type=int, help='Tag denoting if to use 
 parser.add_argument('--fitHOD', dest='fitHOD', type=int, help='Tag denoting if to fit for HOD parameters.', required=False, default=0)
 parser.add_argument('--joinSaccs', dest='joinSaccs', type=int, help='Option to join sacc files into one.', required=False, default=1)
 parser.add_argument('--cullCross', dest='cullCross', type=int, help='Option to remove all cross-correlations from fit.', required=False, default=1)
+parser.add_argument('--singleBin', dest='singleBin', type=int, help='Option to fit only one redshift bin.', required=False, default=0)
+parser.add_argument('--binNo', dest='binNo', type=int, help='Index of redshift bin to fit.', required=False)
 parser.add_argument('--platfrm', dest='platfrm', type=str, help='Platform where code is being run, options = {local, cluster}.', required=False, default='local')
 parser.add_argument('--saccfiles', dest='saccfiles', nargs='+', help='Path to saccfiles.', required=True)
 
@@ -157,6 +159,10 @@ if args.fitNoise == 0:
 
     fnames_saccs_noise = [os.path.splitext(fn)[0]+'_noise.sacc' for fn in args.saccfiles]
     logger.info('Reading noise saccs {}.'.format(fnames_saccs_noise))
+
+    # New filenames
+    # fnames_saccs_noise = [os.path.join(os.path.split(fn)[0], 'noi_bias.sacc') for fn in args.saccfiles]
+    # logger.info('Reading noise saccs {}.'.format(fnames_saccs_noise))
     try:
         saccs_noise = [sacc.SACC.loadFromHDF(fn) for fn in fnames_saccs_noise]
         logger.info ("Loaded %i noise sacc files."%len(saccs))
@@ -172,7 +178,10 @@ if args.fitNoise == 0:
     if args.cullCross == 1:
         for s in saccs_noise:
             s.cullCross()
-
+    if args.singleBin == 1:
+        assert args.binNo is not None, 'Single bin fit requested but bin number not specified. Aborting.'
+        for s in saccs_noise:
+            s.selectTracer(args.binNo)
 else:
     saccs_noise = None
 
@@ -181,8 +190,12 @@ if args.joinSaccs == 1:
 if args.cullCross == 1:
     for s in saccs:
         s.cullCross()
+if args.singleBin == 1:
+    assert args.binNo is not None, 'Single bin fit requested but bin number not specified. Aborting.'
+    for s in saccs:
+        s.selectTracer(args.binNo)
 
-Ntomo=len(saccs[0].tracers) ## number of tomo bins
+Ntomo = len(saccs[0].tracers) ## number of tomo bins
 logger.info ("Ntomo bins: %i"%Ntomo)
 
 saccs, saccs_noise = cutLranges(saccs, args.lmin, args.lmax, args.kmax, Z_EFF, cosmo=None, Ntomo=Ntomo, saccs_noise=saccs_noise)
