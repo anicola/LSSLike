@@ -120,13 +120,14 @@ parser.add_argument('--fitNoise', dest='fitNoise', type=int, help='Tag denoting 
 parser.add_argument('--lmin', dest='lmin', type=str, help='Tag specifying how lmin is determined. lmin = {auto, kmax}.', required=False, default='auto')
 parser.add_argument('--lmax', dest='lmax', type=str, help='Tag specifying how lmax is determined. lmax = {auto, kmax}.', required=False, default='auto')
 parser.add_argument('--kmax', dest='kmax', type=float, help='If lmax=kmax, this sets kmax to use.', required=False)
-parser.add_argument('--hod', dest='hod', type=int, help='Tag denoting if to use HOD in theory predictions.', required=False, default=0)
+parser.add_argument('--modHOD', dest='modHOD', type=str, help='Tag denoting which HOD model to use in theory predictions.', required=False)
 parser.add_argument('--fitHOD', dest='fitHOD', type=int, help='Tag denoting if to fit for HOD parameters.', required=False, default=0)
 parser.add_argument('--joinSaccs', dest='joinSaccs', type=int, help='Option to join sacc files into one.', required=False, default=1)
 parser.add_argument('--cullCross', dest='cullCross', type=int, help='Option to remove all cross-correlations from fit.', required=False, default=1)
 parser.add_argument('--singleBin', dest='singleBin', type=int, help='Option to fit only one redshift bin.', required=False, default=0)
 parser.add_argument('--binNo', dest='binNo', type=int, help='Index of redshift bin to fit.', required=False)
 parser.add_argument('--platfrm', dest='platfrm', type=str, help='Platform where code is being run, options = {local, cluster}.', required=False, default='local')
+parser.add_argument('--fixCosmo', dest='fixCosmo', type=int, help='Tag denoting if to fix cosmological parameters.', required=False, default=0)
 parser.add_argument('--saccfiles', dest='saccfiles', nargs='+', help='Path to saccfiles.', required=True)
 
 args = parser.parse_args()
@@ -150,7 +151,7 @@ else:
     from cosmoHammer import MpiCosmoHammerSampler
 
 cl_params = {'fitHOD': args.fitHOD,
-             'hod': args.hod,
+             'modHOD': args.modHOD,
              'fitNoise': args.fitNoise}
 
 # Determine noise from noise saccs
@@ -219,12 +220,28 @@ DEFAULT_PARAMS = {'Omega_b': 0.0486,
                  'has_magnification': None
                 }
 
-# Parameter start center, min, max, start width
-params = np.array([[0.25, 0.1, 0.5, 0.01]])
+if args.fixCosmo == 1:
+    FID_COSMO_PARAMS = {'Omega_b': 0.0486,
+                     'Omega_k': 0.0,
+                     'sigma8': 0.8,
+                     'h': 0.6774,
+                     'n_s': 0.96,
+                     'Omega_c': 0.25,
+                     'transfer_function': 'boltzmann_class',
+                     'matter_power_spectrum': 'halofit'
+                    }
+    logger.info('Fixing comsological parameters to {}.'.format(FID_COSMO_PARAMS))
+    params = np.array([])
+    PARAM_MAPPING = {}
 
-# Cosmological parameters and mapping we will fit
-PARAM_MAPPING = {'Omega_c': 0
-                }
+else:
+    logger.info('Not fixing cosmological parameters.')
+    # Parameter start center, min, max, start width
+    params = np.array([[0.25, 0.1, 0.5, 0.01]])
+
+    # Cosmological parameters and mapping we will fit
+    PARAM_MAPPING = {'Omega_c': 0
+                    }
 
 if args.fitBias == 1:
     if args.biasMod == 'bz':
@@ -233,7 +250,10 @@ if args.fitBias == 1:
                                                 len(PARAM_MAPPING) + len(BIAS_PARAM_BZ_KEYS), dtype='int'))))
         tempparams = np.concatenate((BIAS_PARAM_BZ_MEANS, BIAS_PARAM_BZ_MINS, BIAS_PARAM_BZ_MAXS, \
                                      BIAS_PARAM_BZ_WIDTHS), axis=0)
-        params = np.vstack((params, tempparams.T))
+        if params.shape[0] != 0:
+            params = np.vstack((params, tempparams.T))
+        else:
+            params = tempparams.T
 
         z_b = np.array([0.0, 0.5, 1.0, 2.0, 4.0])
         DEFAULT_PARAMS['z_b'] = z_b
@@ -244,7 +264,10 @@ if args.fitBias == 1:
                                                 len(PARAM_MAPPING) + len(BIAS_PARAM_CONST_KEYS), dtype='int'))))
         tempparams = np.concatenate((BIAS_PARAM_CONST_MEANS, BIAS_PARAM_CONST_MINS, BIAS_PARAM_CONST_MAXS, \
                                      BIAS_PARAM_CONST_WIDTHS), axis=0)
-        params = np.vstack((params, tempparams.T))
+        if params.shape[0] != 0:
+            params = np.vstack((params, tempparams.T))
+        else:
+            params = tempparams.T
 
 else:
     if args.biasMod == 'bz':
@@ -267,28 +290,35 @@ else:
             DEFAULT_PARAMS[bin] = b_bin[i]
 
 if args.fitHOD == 1:
-    if args.hod == 'z_evol':
+    if args.modHOD == 'zevol':
         PARAM_MAPPING.update(dict(zip(HOD_PARAM_KEYS, np.arange(len(PARAM_MAPPING), \
                                         len(PARAM_MAPPING) + len(HOD_PARAM_KEYS), dtype='int'))))
         tempparams = np.concatenate((HOD_PARAM_MEANS, HOD_PARAM_MINS, HOD_PARAM_MAXS, \
                                          HOD_PARAM_WIDTHS), axis=0)
-    elif args.hod == 'bin':
+    elif args.modHOD == 'bin':
         PARAM_MAPPING.update(dict(zip(HOD_BIN_PARAM_KEYS, np.arange(len(PARAM_MAPPING), \
                                         len(PARAM_MAPPING) + len(HOD_BIN_PARAM_KEYS), dtype='int'))))
         tempparams = np.concatenate((HOD_BIN_PARAM_MEANS, HOD_BIN_PARAM_MINS, HOD_BIN_PARAM_MAXS, \
                                          HOD_BIN_PARAM_WIDTHS), axis=0)
     else:
-        logger.info('Only hod options bin or z_evol supported. Aborting.')
+        logger.info('Only modHOD options bin or z_evol supported. Aborting.')
         raise NotImplementedError()
 
-    params = np.vstack((params, tempparams.T))
+    if params.shape[0] != 0:
+        params = np.vstack((params, tempparams.T))
+    else:
+        params = tempparams.T
 
 # Set up CosmoHammer
 chain = LikelihoodComputationChain(
                     min=params[:,1],
                     max=params[:,2])
 
-chain.addCoreModule(HSCCoreModule(PARAM_MAPPING, DEFAULT_PARAMS, cl_params, saccs, noise))
+if args.fixCosmo == 1:
+    chain.addCoreModule(HSCCoreModule(PARAM_MAPPING, DEFAULT_PARAMS, cl_params, saccs, noise, \
+                                      fid_cosmo_params=FID_COSMO_PARAMS))
+else:
+    chain.addCoreModule(HSCCoreModule(PARAM_MAPPING, DEFAULT_PARAMS, cl_params, saccs, noise))
 
 chain.addLikelihoodModule(HSCLikeModule(saccs))
 
